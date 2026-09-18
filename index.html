@@ -16,6 +16,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Script oEmbed officiel Data.gouv.fr -->
+  <script data-udata="https://www.data.gouv.fr" src="https://www.data.gouv.fr/oembed.js" async defer></script>
+
   <style>
     #map { height: calc(100vh - 210px); min-height: 480px; width: 100%; border-radius: 1rem; }
     th.sortable { cursor: pointer; user-select: none; }
@@ -29,23 +32,23 @@
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
 
-  <div class="max-w-7xl mx-auto px-4 py-8">
+  <div class="max-w-7xl mx-auto px-4 py-8 w-full">
     
     <!-- EN-TÊTE PRINCIPAL -->
     <header class="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-600 mb-1">
           <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-          Données Consolidées — JSON Local (2023-2025)
+          Ministère de la Transition Écologique — Données Consolidées (2023-2025)
         </div>
         <h1 class="text-2xl font-bold text-slate-900">Observatoire Fonds Vert — Côtes-d'Armor (22)</h1>
         <p class="text-xs text-slate-500 mt-0.5">Analyse par EPCI, Communes et Cartographie des Centroïdes</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-        <!-- NAVIGATION ONGLETS (Analyse par défaut) -->
+        <!-- NAVIGATION ONGLETS -->
         <div class="bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center gap-1">
           <button id="tab-stats-btn" onclick="switchTab('stats')" class="tab-btn active px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2">
             <i class="fa-solid fa-chart-pie"></i>
@@ -78,7 +81,7 @@
       </div>
     </div>
 
-    <!-- ==================== ONGLET 1 : ANALYSE STATISTIQUE (OUVERT PAR DÉFAUT) ==================== -->
+    <!-- ==================== ONGLET 1 : ANALYSE STATISTIQUE ==================== -->
     <main id="view-stats" class="space-y-8">
       
       <!-- KPIs -->
@@ -223,7 +226,7 @@
       <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-sm">
         <div class="flex items-center gap-2 text-emerald-700 font-semibold">
           <i class="fa-solid fa-map-pin text-emerald-600"></i>
-          <span>Carte Google Maps — Puces positionnées sur le centroïde de chaque commune</span>
+          <span>Cartographie — Puces positionnées sur le centroïde de chaque commune</span>
         </div>
         <div class="flex items-center gap-4 text-slate-600 font-medium">
           <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-purple-500/10 border-2 border-purple-700 inline-block"></span> Limites EPCI</div>
@@ -238,6 +241,32 @@
     </main>
 
   </div>
+
+  <!-- PIED DE PAGE : SOURCE DE LA DONNÉE & EMBED DATA.GOUV.FR -->
+  <footer class="mt-12 bg-white border-t border-slate-200 py-8 px-4">
+    <div class="max-w-7xl mx-auto space-y-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
+        <div>
+          <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-database text-emerald-600"></i> Source des données publiques
+          </h4>
+          <p class="text-xs text-slate-500 mt-1">
+            Données issues de la plateforme nationale ouverte <strong>data.gouv.fr</strong>. 
+            Propriétaire de la donnée : <strong>Ministère de la Transition Écologique</strong>.
+          </p>
+        </div>
+        <a href="https://www.data.gouv.fr/fr/datasets/fonds-vert-liste-des-projets-subventionnes/" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-2">
+          Consulter sur data.gouv.fr <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </a>
+      </div>
+
+      <!-- WIDGET EMBED DATA.GOUV.FR -->
+      <div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Jeu de données certifié :</span>
+        <div data-udata-dataset="66a215a463a9da4fb801b8cf"></div>
+      </div>
+    </div>
+  </footer>
 
   <!-- FENÊTRE MODALE POP-UP DE DÉTAIL DU PROJET -->
   <div id="project-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -368,7 +397,6 @@
         if (!res.ok) throw new Error("Fichier JSON non trouvé");
         rawJSONCommunes = await res.json();
 
-        // Pré-enrichissement des données avec les populations/EPCI
         for (let commune of rawJSONCommunes) {
           const geo = await getGeoDetails(commune.code);
           commune.epci = geo.epci;
@@ -396,7 +424,6 @@
       rawJSONCommunes.forEach(item => {
         const filteredProjects = item.projects.filter(p => selectedYear === 'ALL' || p.annee === selectedYear);
         
-        // EPCI & Communes
         const epciName = item.epci || "Commune isolée";
         const pop = item.population || 0;
 
@@ -743,33 +770,44 @@
       });
     }
 
-    // --- CARTE LEAFLET + GOOGLE MAPS ---
+    // --- CARTE LEAFLET : OSM GRIS & IGN ORTHOPHOTO ---
     function initMap() {
-      const googleRoadmap = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      // 1. OpenStreetMap Niveau de gris (Positron par CartoDB)
+      const osmGris = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: '&copy; Google Maps'
+        subdomains: 'abcd',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
       });
 
-      const googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: '&copy; Google Maps'
+      // 2. IGN Orthophoto (Vue Aérienne Officielle Française)
+      const ignOrtho = L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.ign.fr/">IGN</a> — Photo aérienne'
       });
 
+      // 3. OpenStreetMap Couleurs Standard
+      const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      });
+
+      // Initialisation par défaut sur OSM Gris
       map = L.map('map', {
         center: [48.45, -2.85],
         zoom: 9,
-        layers: [googleRoadmap]
+        layers: [osmGris]
       });
 
       markersGroup.addTo(map);
 
+      // Sélecteur de couches
       L.control.layers({
-        "Google Maps (Standard)": googleRoadmap,
-        "Google Satellite": googleSatellite
+        "OSM Niveaux de Gris": osmGris,
+        "IGN Vue Aérienne (Orthophoto)": ignOrtho,
+        "OpenStreetMap Couleurs": osmStandard
       }).addTo(map);
 
+      // Fond des limites EPCI en violet
       fetch('https://geo.api.gouv.fr/departements/22/epcis?format=geojson&geometry=contour&fields=nom,code')
         .then(res => res.json())
         .then(data => {

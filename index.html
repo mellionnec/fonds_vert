@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Fonds Vert (2023-2025) - Côtes-d'Armor (22)</title>
+  <title>Analyse & Cartographie Fonds Vert (2023-2025) - Côtes-d'Armor (22)</title>
   
   <!-- Tailwind CSS & FontAwesome -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -17,7 +17,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    #map { height: calc(100vh - 210px); min-height: 450px; width: 100%; border-radius: 1rem; }
+    #map { height: calc(100vh - 210px); min-height: 480px; width: 100%; border-radius: 1rem; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { background-color: #f1f5f9; }
+    tr.clickable-row { cursor: pointer; }
+    tr.clickable-row:hover { background-color: #f8fafc; }
     .tab-btn.active {
       background-color: #0F172A;
       color: #FFFFFF;
@@ -27,36 +31,37 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
 
-  <div class="max-w-7xl mx-auto px-4 py-6">
+  <div class="max-w-7xl mx-auto px-4 py-8">
     
     <!-- EN-TÊTE PRINCIPAL -->
-    <header class="mb-6 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <header class="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-600 mb-1">
           <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-          Tableau de bord officiel — Côtes-d'Armor (22)
+          Données Consolidées — JSON Local (2023-2025)
         </div>
-        <h1 class="text-2xl font-extrabold text-slate-900">Observatoire des Subventions Fonds Vert</h1>
+        <h1 class="text-2xl font-bold text-slate-900">Observatoire Fonds Vert — Côtes-d'Armor (22)</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Analyse par EPCI, Communes et Cartographie des Centroïdes</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-        <!-- NAVIGATION ONGLETS -->
+        <!-- NAVIGATION ONGLETS (Analyse par défaut) -->
         <div class="bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center gap-1">
-          <button id="tab-map-btn" onclick="switchTab('map')" class="tab-btn active px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2">
-            <i class="fa-solid fa-map-location-dot"></i>
-            Cartographie
-          </button>
-          <button id="tab-stats-btn" onclick="switchTab('stats')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-2">
+          <button id="tab-stats-btn" onclick="switchTab('stats')" class="tab-btn active px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2">
             <i class="fa-solid fa-chart-pie"></i>
             Analyse Statistique
+          </button>
+          <button id="tab-map-btn" onclick="switchTab('map')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-2">
+            <i class="fa-solid fa-map-location-dot"></i>
+            Cartographie
           </button>
         </div>
 
         <!-- FILTRE EXERCICE -->
-        <div class="flex items-center gap-2 bg-slate-50 p-1.5 px-3 rounded-xl border border-slate-200">
-          <label for="year-select" class="text-xs font-semibold text-slate-600">Exercice :</label>
-          <select id="year-select" class="bg-white text-xs font-semibold text-slate-800 py-1 px-2 rounded-lg border border-slate-200 focus:outline-none">
-            <option value="ALL" selected>Cumul (2023 - 2025)</option>
+        <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+          <label for="year-select" class="text-xs font-semibold text-slate-600 pl-2">Exercice :</label>
+          <select id="year-select" class="bg-white text-sm font-semibold text-slate-800 py-1.5 px-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="ALL" selected>Cumul (2023 + 2024 + 2025)</option>
             <option value="2025">Année 2025</option>
             <option value="2024">Année 2024</option>
             <option value="2023">Année 2023</option>
@@ -65,13 +70,160 @@
       </div>
     </header>
 
-    <!-- SECTION 1 : VUE CARTOGRAPHIQUE -->
-    <div id="view-map" class="space-y-4">
-      <!-- Légende Carte -->
+    <!-- BANNIÈRE DE STATUT -->
+    <div id="status-banner" class="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-sm flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-spinner fa-spin text-blue-600 text-lg" id="status-icon"></i>
+        <span id="status-text">Chargement instantané du fichier JSON pré-consolidé...</span>
+      </div>
+    </div>
+
+    <!-- ==================== ONGLET 1 : ANALYSE STATISTIQUE (OUVERT PAR DÉFAUT) ==================== -->
+    <main id="view-stats" class="space-y-8">
+      
+      <!-- KPIs -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dossiers (Dpt 22)</span>
+          <div id="kpi-total-dossiers" class="text-2xl font-bold text-slate-800 mt-2">0</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Communes Bénéficiaires</span>
+          <div id="kpi-total-communes" class="text-2xl font-bold text-slate-800 mt-2">0</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Montant Total Aides</span>
+          <div id="kpi-total-montant" class="text-2xl font-bold text-slate-800 mt-2">0 €</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ratio Moyen / Habitant</span>
+          <div id="kpi-ratio-moyen" class="text-2xl font-bold text-emerald-600 mt-2">0 €/hab.</div>
+        </div>
+      </div>
+
+      <!-- Graphiques EPCI -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-users text-emerald-600"></i> Ratio par Habitant (€ / hab.)
+          </h3>
+          <div class="relative h-72">
+            <canvas id="ratioChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-column text-blue-600"></i> Ventilation Annuelle par EPCI (€)
+          </h3>
+          <div class="relative h-72">
+            <canvas id="yearsChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-purple-600"></i> Répartition des Montants par EPCI
+          </h3>
+          <div class="relative h-72">
+            <canvas id="epciPieChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLEAU 1 : SYNTHÈSE PAR EPCI -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+          <div>
+            <h3 class="text-base font-bold text-slate-800">Synthèse par EPCI</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Cliquez sur l'en-tête d'une colonne pour modifier le tri</p>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] font-semibold border-b border-slate-100">
+              <tr>
+                <th class="p-4 sortable" onclick="sortTable('epci', 'epci')">EPCI <span id="sort-epci-epci"></span></th>
+                <th class="p-4 text-center sortable" onclick="sortTable('epci', 'count')">Dossiers <span id="sort-epci-count"></span></th>
+                <th class="p-4 text-right sortable" onclick="sortTable('epci', 'population')">Population <span id="sort-epci-population"></span></th>
+                <th class="p-4 text-right sortable" onclick="sortTable('epci', 'm2023')">2023 (€) <span id="sort-epci-m2023"></span></th>
+                <th class="p-4 text-right sortable" onclick="sortTable('epci', 'm2024')">2024 (€) <span id="sort-epci-m2024"></span></th>
+                <th class="p-4 text-right sortable" onclick="sortTable('epci', 'm2025')">2025 (€) <span id="sort-epci-m2025"></span></th>
+                <th class="p-4 text-right sortable" onclick="sortTable('epci', 'montantTotal')">Total (€) <span id="sort-epci-montantTotal"></span></th>
+                <th class="p-4 text-right sortable font-bold text-slate-900" onclick="sortTable('epci', 'ratio')">Ratio (€ / hab.) <span id="sort-epci-ratio"></span></th>
+              </tr>
+            </thead>
+            <tbody id="epci-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Graphique Communes (REPLIABLE) -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div class="flex items-center gap-3">
+            <button onclick="toggleTopCommunesChart()" class="text-slate-500 hover:text-slate-800 transition">
+              <i id="communes-chart-toggle-icon" class="fa-solid fa-chevron-right text-base"></i>
+            </button>
+            <div>
+              <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-city text-indigo-600"></i> Classement des Communes (Top 15)
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Section repliable</p>
+            </div>
+          </div>
+          <div id="communes-chart-controls" class="hidden flex gap-2 bg-slate-100 p-1 rounded-lg text-xs font-semibold">
+            <button id="btn-chart-commune-ratio" onclick="switchCommuneChartMode('ratio')" class="px-3 py-1 rounded-md bg-white text-indigo-600 shadow-sm">Par Ratio (€/hab.)</button>
+            <button id="btn-chart-commune-montant" onclick="switchCommuneChartMode('montant')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900">Par Montant Total (€)</button>
+          </div>
+        </div>
+        <div id="communes-chart-container" class="hidden p-6 relative h-96">
+          <canvas id="communesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- TABLEAU 2 : DETAIL DES COMMUNES -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-800">Détail des Communes du Département (22)</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Cliquez sur une commune pour afficher la liste complète de ses dossiers subventionnés</p>
+          </div>
+          <div class="w-full sm:w-72 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+            <input type="text" id="commune-search" oninput="renderCommunesTable()" placeholder="Rechercher une commune..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] font-semibold border-b border-slate-100">
+              <tr>
+                <th class="p-4 w-8"></th>
+                <th class="p-4 sortable" onclick="sortTable('communes', 'code')">Code <span id="sort-communes-code"></span></th>
+                <th class="p-4 sortable" onclick="sortTable('communes', 'nom')">Commune <span id="sort-communes-nom"></span></th>
+                <th class="p-4 sortable" onclick="sortTable('communes', 'epci')">EPCI <span id="sort-communes-epci"></span></th>
+                <th class="p-4 text-center sortable" onclick="sortTable('communes', 'count')">Dossiers <span id="sort-communes-count"></span></th>
+                <th class="p-4 text-right sortable" onclick="sortTable('communes', 'population')">Population <span id="sort-communes-population"></span></th>
+                <th class="p-4 text-right sortable" onclick="sortTable('communes', 'montantTotal')">Montant Total (€) <span id="sort-communes-montantTotal"></span></th>
+                <th class="p-4 text-right sortable font-bold text-slate-900" onclick="sortTable('communes', 'ratio')">Ratio (€ / hab.) <span id="sort-communes-ratio"></span></th>
+              </tr>
+            </thead>
+            <tbody id="communes-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ==================== ONGLET 2 : CARTOGRAPHIE INTERACTIVE ==================== -->
+    <main id="view-map" class="space-y-4 hidden">
       <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-sm">
         <div class="flex items-center gap-2 text-emerald-700 font-semibold">
-          <i class="fa-solid fa-circle-info text-emerald-600"></i>
-          <span id="status-text">Chargement des données...</span>
+          <i class="fa-solid fa-map-pin text-emerald-600"></i>
+          <span>Carte Google Maps — Puces positionnées sur le centroïde de chaque commune</span>
         </div>
         <div class="flex items-center gap-4 text-slate-600 font-medium">
           <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-purple-500/10 border-2 border-purple-700 inline-block"></span> Limites EPCI</div>
@@ -80,130 +232,103 @@
         </div>
       </div>
 
-      <!-- Carte Leaflet -->
       <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
         <div id="map"></div>
       </div>
-    </div>
-
-    <!-- SECTION 2 : VUE ANALYSE STATISTIQUE -->
-    <div id="view-stats" class="space-y-6 hidden">
-      <!-- KPIs (Indicateurs clés) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <span class="text-slate-400 font-bold text-xs uppercase tracking-wider block mb-1">Montant Total Accordé</span>
-          <div id="kpi-total-montant" class="text-2xl font-black text-emerald-600">0 €</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <span class="text-slate-400 font-bold text-xs uppercase tracking-wider block mb-1">Dossiers Subventionnés</span>
-          <div id="kpi-total-dossiers" class="text-2xl font-black text-slate-900">0</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <span class="text-slate-400 font-bold text-xs uppercase tracking-wider block mb-1">Communes Bénéficiaires</span>
-          <div id="kpi-communes-count" class="text-2xl font-black text-blue-600">0</div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <span class="text-slate-400 font-bold text-xs uppercase tracking-wider block mb-1">Aide Moyenne / Dossier</span>
-          <div id="kpi-avg-montant" class="text-2xl font-black text-purple-600">0 €</div>
-        </div>
-      </div>
-
-      <!-- Graphiques -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Evolution Annuelle -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-chart-column text-emerald-600"></i>
-            Répartition par Année
-          </h3>
-          <div class="h-64"><canvas id="chart-yearly"></canvas></div>
-        </div>
-
-        <!-- Top Communes -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-ranking-star text-amber-500"></i>
-            Top 10 des Communes les plus Subventionnées
-          </h3>
-          <div class="h-64"><canvas id="chart-top-communes"></canvas></div>
-        </div>
-
-        <!-- Répartition par Démarche -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2">
-          <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-list-check text-blue-600"></i>
-            Volume des Financements par Type de Démarche
-          </h3>
-          <div class="h-72"><canvas id="chart-demarches"></canvas></div>
-        </div>
-      </div>
-    </div>
+    </main>
 
   </div>
 
-  <!-- FENÊTRE MODALE DETAIL PROJETS -->
-  <div id="commune-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden">
+  <!-- FENÊTRE MODALE POP-UP DE DÉTAIL DU PROJET -->
+  <div id="project-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
       <div class="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-start">
         <div>
-          <span id="modal-commune-code" class="text-xs font-mono font-bold text-slate-400 bg-slate-200/60 px-2.5 py-1 rounded-md">22000</span>
-          <h3 id="modal-commune-nom" class="text-xl font-bold text-slate-900 mt-2">Nom Commune</h3>
+          <span id="modal-annee" class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full uppercase tracking-wider">2025</span>
+          <h3 id="modal-demarche" class="text-lg font-bold text-slate-900 mt-2">Nom de la démarche</h3>
+          <p id="modal-commune-epci" class="text-xs text-slate-500 mt-0.5">Commune — EPCI</p>
         </div>
-        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+        <button onclick="closeProjectModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
       </div>
-
-      <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-        <div class="grid grid-cols-2 gap-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 text-xs">
+      <div class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs">
           <div>
-            <span class="text-emerald-700 uppercase font-semibold block">Projets Financés</span>
-            <span id="modal-total-count" class="font-bold text-slate-800 text-base">0</span>
+            <span class="text-slate-400 uppercase font-semibold block">N° / ID Dossier</span>
+            <span id="modal-num-dossier" class="font-mono font-bold text-slate-800">12345</span>
           </div>
           <div>
-            <span class="text-emerald-700 uppercase font-semibold block">Cumul Subventions</span>
-            <span id="modal-total-montant" class="font-bold text-emerald-600 text-base">0 €</span>
+            <span class="text-slate-400 uppercase font-semibold block">Subvention Accordée</span>
+            <span id="modal-montant" class="font-bold text-emerald-600 text-sm">0 €</span>
           </div>
         </div>
 
         <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-file-invoice text-emerald-600"></i>
-            Détail des Subventions Fonds Vert
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-align-left text-indigo-600"></i>
+            Résumé / Description du projet
           </h4>
-          <div id="modal-projects-list" class="space-y-3"></div>
+          <div id="modal-resume-projet" class="text-sm text-slate-700 bg-slate-50/50 p-4 rounded-xl border border-slate-100 leading-relaxed whitespace-pre-line max-h-60 overflow-y-auto">
+            Aucun résumé disponible pour ce projet.
+          </div>
         </div>
       </div>
-
       <div class="bg-slate-50 p-4 border-t border-slate-100 text-right">
-        <button onclick="closeModal()" class="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition">Fermer</button>
+        <button onclick="closeProjectModal()" class="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition">Fermer</button>
       </div>
     </div>
   </div>
 
   <script>
-    let map;
-    let markersGroup = L.layerGroup();
-    let datasetCommunes = [];
+    let rawJSONCommunes = [];
+    let processedEPCI = [];
+    let processedCommunes = [];
+    let cacheGeoMap = {};
 
-    // Instances Chart.js
-    let chartYearly, chartTopCommunes, chartDemarches;
+    let expandedCommuneCode = null;
+    let isTopCommunesVisible = false;
+
+    let epciSort = { col: 'ratio', asc: false };
+    let communesSort = { col: 'ratio', asc: false };
+    let communeChartMode = 'ratio';
+
+    let ratioChartInstance = null;
+    let yearsChartInstance = null;
+    let epciPieChartInstance = null;
+    let communesChartInstance = null;
+
+    let map = null;
+    let markersGroup = L.layerGroup();
+
+    const statusBanner = document.getElementById('status-banner');
+    const statusText = document.getElementById('status-text');
+    const statusIcon = document.getElementById('status-icon');
+    const yearSelect = document.getElementById('year-select');
 
     window.addEventListener('DOMContentLoaded', async () => {
       initMap();
-      await loadJSONData();
+      await fetchAndProcessJSON();
     });
 
-    document.getElementById('year-select').addEventListener('change', () => {
-      updateViews();
-    });
+    yearSelect.addEventListener('change', () => analyzeAndRenderData());
 
-    // --- GESTION DES ONGLETS ---
+    // --- NAVIGATION ONGLETS ---
     function switchTab(tab) {
-      const btnMap = document.getElementById('tab-map-btn');
       const btnStats = document.getElementById('tab-stats-btn');
-      const viewMap = document.getElementById('view-map');
+      const btnMap = document.getElementById('tab-map-btn');
       const viewStats = document.getElementById('view-stats');
+      const viewMap = document.getElementById('view-map');
 
-      if (tab === 'map') {
+      if (tab === 'stats') {
+        btnStats.classList.add('active');
+        btnStats.classList.remove('text-slate-600');
+        btnMap.classList.remove('active');
+        btnMap.classList.add('text-slate-600');
+
+        viewStats.classList.remove('hidden');
+        viewMap.classList.add('hidden');
+      } else {
         btnMap.classList.add('active');
         btnMap.classList.remove('text-slate-600');
         btnStats.classList.remove('active');
@@ -212,21 +337,413 @@
         viewMap.classList.remove('hidden');
         viewStats.classList.add('hidden');
 
-        setTimeout(() => map.invalidateSize(), 100);
-      } else {
-        btnStats.classList.add('active');
-        btnStats.classList.remove('text-slate-600');
-        btnMap.classList.remove('active');
-        btnMap.classList.add('text-slate-600');
-
-        viewStats.classList.remove('hidden');
-        viewMap.classList.add('hidden');
-
-        renderCharts();
+        setTimeout(() => {
+          if (map) map.invalidateSize();
+        }, 100);
       }
     }
 
-    // --- CARTE LEAFLET ---
+    // --- OBTENTION POPULATION & EPCI VIA API GEO (EN CACHE) ---
+    async function getGeoDetails(codeInsee) {
+      if (cacheGeoMap[codeInsee]) return cacheGeoMap[codeInsee];
+      try {
+        const res = await fetch(`https://geo.api.gouv.fr/communes/${codeInsee}?fields=nom,population,epci`);
+        if (!res.ok) return { epci: "Commune isolée", population: 0 };
+        const data = await res.json();
+        const info = {
+          epci: data.epci ? data.epci.nom : "Commune isolée",
+          population: data.population || 0
+        };
+        cacheGeoMap[codeInsee] = info;
+        return info;
+      } catch (err) {
+        return { epci: "Non localisé", population: 0 };
+      }
+    }
+
+    // --- CHARGEMENT DU JSON ---
+    async function fetchAndProcessJSON() {
+      try {
+        const res = await fetch('fonds_vert_22.json');
+        if (!res.ok) throw new Error("Fichier JSON non trouvé");
+        rawJSONCommunes = await res.json();
+
+        // Pré-enrichissement des données avec les populations/EPCI
+        for (let commune of rawJSONCommunes) {
+          const geo = await getGeoDetails(commune.code);
+          commune.epci = geo.epci;
+          commune.population = geo.population;
+        }
+
+        analyzeAndRenderData();
+      } catch (err) {
+        statusBanner.className = "mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-3";
+        statusIcon.className = "fa-solid fa-circle-exclamation text-red-600 text-lg";
+        statusText.innerHTML = "Erreur : Assurez-vous que le fichier <strong>fonds_vert_22.json</strong> est bien déposé sur GitHub.";
+      }
+    }
+
+    // --- AGREGATION & CALCULS ---
+    function analyzeAndRenderData() {
+      const selectedYear = yearSelect.value;
+      const epciMap = {};
+      const communesMap = {};
+
+      let totalDossiersGlobal = 0;
+      let totalMontantGlobal = 0;
+      let totalPopGlobal = 0;
+
+      rawJSONCommunes.forEach(item => {
+        const filteredProjects = item.projects.filter(p => selectedYear === 'ALL' || p.annee === selectedYear);
+        
+        // EPCI & Communes
+        const epciName = item.epci || "Commune isolée";
+        const pop = item.population || 0;
+
+        if (!epciMap[epciName]) {
+          epciMap[epciName] = { epci: epciName, count: 0, montantTotal: 0, m2023: 0, m2024: 0, m2025: 0, population: 0 };
+        }
+
+        if (filteredProjects.length > 0) {
+          epciMap[epciName].population += pop;
+          totalPopGlobal += pop;
+        }
+
+        let comMontant = 0;
+        let comDossiers = [];
+
+        filteredProjects.forEach(p => {
+          totalDossiersGlobal++;
+          totalMontantGlobal += p.montant;
+          comMontant += p.montant;
+
+          epciMap[epciName].count++;
+          epciMap[epciName].montantTotal += p.montant;
+          if (p.annee === '2023') epciMap[epciName].m2023 += p.montant;
+          if (p.annee === '2024') epciMap[epciName].m2024 += p.montant;
+          if (p.annee === '2025') epciMap[epciName].m2025 += p.montant;
+
+          comDossiers.push({
+            numDossier: p.numDossier,
+            demarche: p.demarche,
+            resumeProjet: p.resume,
+            montant: p.montant,
+            annee: p.annee,
+            communeNom: item.nom,
+            epciNom: epciName
+          });
+        });
+
+        if (filteredProjects.length > 0) {
+          communesMap[item.code] = {
+            code: item.code,
+            nom: item.nom,
+            epci: epciName,
+            count: filteredProjects.length,
+            montantTotal: comMontant,
+            population: pop,
+            dossiers: comDossiers
+          };
+        }
+      });
+
+      processedEPCI = Object.values(epciMap).map(e => ({
+        ...e,
+        ratio: e.population > 0 ? e.montantTotal / e.population : 0
+      }));
+
+      processedCommunes = Object.values(communesMap).map(c => ({
+        ...c,
+        ratio: c.population > 0 ? c.montantTotal / c.population : 0
+      }));
+
+      const ratioMoyenGlobal = totalPopGlobal > 0 ? totalMontantGlobal / totalPopGlobal : 0;
+
+      statusBanner.className = "mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2";
+      statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-lg";
+      statusText.innerHTML = `<strong>Analyse terminée :</strong> ${totalDossiersGlobal} dossiers analysés dans ${processedCommunes.length} communes et ${processedEPCI.length} EPCI.`;
+
+      document.getElementById('kpi-total-dossiers').innerText = totalDossiersGlobal.toLocaleString('fr-FR');
+      document.getElementById('kpi-total-communes').innerText = processedCommunes.length;
+      document.getElementById('kpi-total-montant').innerText = totalMontantGlobal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+      document.getElementById('kpi-ratio-moyen').innerText = ratioMoyenGlobal.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + " €/hab.";
+
+      renderEPCITable();
+      renderCommunesTable();
+      renderCharts();
+      renderMapPoints();
+    }
+
+    // --- TAB EPCI ---
+    function sortTable(type, column) {
+      let config = type === 'epci' ? epciSort : communesSort;
+      if (config.col === column) {
+        config.asc = !config.asc;
+      } else {
+        config.col = column;
+        config.asc = false;
+      }
+
+      if (type === 'epci') renderEPCITable();
+      else renderCommunesTable();
+    }
+
+    function updateSortIndicators(type) {
+      const config = type === 'epci' ? epciSort : communesSort;
+      const cols = type === 'epci' 
+        ? ['epci', 'count', 'population', 'm2023', 'm2024', 'm2025', 'montantTotal', 'ratio']
+        : ['code', 'nom', 'epci', 'count', 'population', 'montantTotal', 'ratio'];
+
+      cols.forEach(c => {
+        const el = document.getElementById(`sort-${type}-${c}`);
+        if (el) {
+          el.innerHTML = (config.col === c) ? (config.asc ? "▲" : "▼") : "";
+          if (config.col === c) el.className = "text-emerald-600 font-bold ml-1";
+        }
+      });
+    }
+
+    function renderEPCITable() {
+      updateSortIndicators('epci');
+      const data = [...processedEPCI].sort((a, b) => {
+        let valA = a[epciSort.col];
+        let valB = b[epciSort.col];
+        if (typeof valA === 'string') return epciSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        return epciSort.asc ? valA - valB : valB - valA;
+      });
+
+      const tbody = document.getElementById('epci-table-body');
+      tbody.innerHTML = data.map(e => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="p-4 font-semibold text-slate-800">${e.epci}</td>
+          <td class="p-4 text-center font-bold text-blue-600">${e.count}</td>
+          <td class="p-4 text-right text-slate-600">${e.population.toLocaleString('fr-FR')} hab.</td>
+          <td class="p-4 text-right text-slate-500">${e.m2023.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</td>
+          <td class="p-4 text-right text-slate-500">${e.m2024.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</td>
+          <td class="p-4 text-right text-slate-500">${e.m2025.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</td>
+          <td class="p-4 text-right font-bold text-slate-900">${e.montantTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+          <td class="p-4 text-right font-bold text-emerald-600 bg-emerald-50/50 rounded-lg">${e.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €/hab.</td>
+        </tr>
+      `).join('');
+    }
+
+    function toggleCommuneDetail(codeCommune) {
+      expandedCommuneCode = (expandedCommuneCode === codeCommune) ? null : codeCommune;
+      renderCommunesTable();
+    }
+
+    function renderCommunesTable() {
+      updateSortIndicators('communes');
+      const search = document.getElementById('commune-search').value.toLowerCase();
+      
+      let filtered = processedCommunes.filter(c => 
+        c.nom.toLowerCase().includes(search) || 
+        c.code.includes(search) || 
+        c.epci.toLowerCase().includes(search)
+      );
+
+      filtered.sort((a, b) => {
+        let valA = a[communesSort.col];
+        let valB = b[communesSort.col];
+        if (typeof valA === 'string') return communesSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        return communesSort.asc ? valA - valB : valB - valA;
+      });
+
+      const tbody = document.getElementById('communes-table-body');
+      let html = '';
+
+      filtered.forEach(c => {
+        const isExpanded = (expandedCommuneCode === c.code);
+        
+        html += `
+          <tr class="clickable-row border-b border-slate-100" onclick="toggleCommuneDetail('${c.code}')">
+            <td class="p-4 text-center text-slate-400">
+              <i class="fa-solid ${isExpanded ? 'fa-chevron-down text-indigo-600' : 'fa-chevron-right'}"></i>
+            </td>
+            <td class="p-4 font-mono text-xs text-slate-400">${c.code}</td>
+            <td class="p-4 font-semibold text-slate-800">${c.nom}</td>
+            <td class="p-4 text-xs text-slate-500">${c.epci}</td>
+            <td class="p-4 text-center font-bold text-indigo-600">${c.count}</td>
+            <td class="p-4 text-right text-slate-600">${c.population.toLocaleString('fr-FR')} hab.</td>
+            <td class="p-4 text-right font-medium text-slate-700">${c.montantTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+            <td class="p-4 text-right font-bold text-emerald-600 bg-emerald-50/50 rounded-lg">${c.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €/hab.</td>
+          </tr>
+        `;
+
+        if (isExpanded) {
+          html += `
+            <tr class="bg-indigo-50/40">
+              <td colspan="8" class="p-4">
+                <div class="bg-white rounded-xl p-4 border border-indigo-100 shadow-sm">
+                  <h4 class="font-bold text-xs uppercase tracking-wider text-indigo-900 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-open text-indigo-600"></i>
+                    Dossiers enregistrés pour ${c.nom} (${c.dossiers.length})
+                  </h4>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                      <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] border-b border-slate-100">
+                        <tr>
+                          <th class="p-2">Année</th>
+                          <th class="p-2">N° / ID Dossier</th>
+                          <th class="p-2">Projet / Démarche</th>
+                          <th class="p-2 text-right">Montant engagé (€)</th>
+                          <th class="p-2 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        ${c.dossiers.map((d, index) => `
+                          <tr>
+                            <td class="p-2 font-semibold text-slate-600"><span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${d.annee}</span></td>
+                            <td class="p-2 font-mono text-slate-500">${d.numDossier}</td>
+                            <td class="p-2 font-medium text-slate-800">${d.demarche}</td>
+                            <td class="p-2 text-right font-bold text-emerald-600">${d.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+                            <td class="p-2 text-center">
+                              <button onclick="openProjectModal('${c.code}',${index})" class="px-2.5 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg font-semibold transition flex items-center gap-1.5 mx-auto">
+                                <i class="fa-solid fa-file-text"></i> Voir résumé
+                              </button>
+                            </td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function openProjectModal(communeCode, dossierIndex) {
+      const commune = processedCommunes.find(c => c.code === communeCode);
+      if (!commune || !commune.dossiers[dossierIndex]) return;
+
+      const d = commune.dossiers[dossierIndex];
+
+      document.getElementById('modal-annee').innerText = d.annee;
+      document.getElementById('modal-demarche').innerText = d.demarche;
+      document.getElementById('modal-commune-epci').innerText = `${d.communeNom} — ${d.epciNom}`;
+      document.getElementById('modal-num-dossier').innerText = d.numDossier;
+      document.getElementById('modal-montant').innerText = d.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+      document.getElementById('modal-resume-projet').innerText = d.resumeProjet;
+
+      document.getElementById('project-modal').classList.remove('hidden');
+    }
+
+    function closeProjectModal() {
+      document.getElementById('project-modal').classList.add('hidden');
+    }
+
+    function toggleTopCommunesChart() {
+      isTopCommunesVisible = !isTopCommunesVisible;
+      const container = document.getElementById('communes-chart-container');
+      const controls = document.getElementById('communes-chart-controls');
+      const icon = document.getElementById('communes-chart-toggle-icon');
+
+      if (isTopCommunesVisible) {
+        container.classList.remove('hidden');
+        controls.classList.remove('hidden');
+        controls.classList.add('flex');
+        icon.className = "fa-solid fa-chevron-down text-base text-indigo-600";
+        renderCommunesChart();
+      } else {
+        container.classList.add('hidden');
+        controls.classList.add('hidden');
+        controls.classList.remove('flex');
+        icon.className = "fa-solid fa-chevron-right text-base";
+      }
+    }
+
+    function switchCommuneChartMode(mode) {
+      communeChartMode = mode;
+      const btnRatio = document.getElementById('btn-chart-commune-ratio');
+      const btnMontant = document.getElementById('btn-chart-commune-montant');
+
+      if (mode === 'ratio') {
+        btnRatio.className = "px-3 py-1 rounded-md bg-white text-indigo-600 shadow-sm";
+        btnMontant.className = "px-3 py-1 rounded-md text-slate-600 hover:text-slate-900";
+      } else {
+        btnMontant.className = "px-3 py-1 rounded-md bg-white text-indigo-600 shadow-sm";
+        btnRatio.className = "px-3 py-1 rounded-md text-slate-600 hover:text-slate-900";
+      }
+      renderCommunesChart();
+    }
+
+    // --- CHART.JS ---
+    function renderCharts() {
+      const topRatio = [...processedEPCI].sort((a, b) => b.ratio - a.ratio);
+
+      if (ratioChartInstance) ratioChartInstance.destroy();
+      ratioChartInstance = new Chart(document.getElementById('ratioChart'), {
+        type: 'bar',
+        data: {
+          labels: topRatio.map(e => e.epci.length > 20 ? e.epci.substring(0, 20) + '...' : e.epci),
+          datasets: [{
+            label: 'Ratio (€/hab.)',
+            data: topRatio.map(e => e.ratio),
+            backgroundColor: '#10b981',
+            borderRadius: 6
+          }]
+        },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const topMontant = [...processedEPCI].sort((a, b) => b.montantTotal - a.montantTotal);
+
+      if (yearsChartInstance) yearsChartInstance.destroy();
+      yearsChartInstance = new Chart(document.getElementById('yearsChart'), {
+        type: 'bar',
+        data: {
+          labels: topMontant.map(e => e.epci.length > 15 ? e.epci.substring(0, 15) + '...' : e.epci),
+          datasets: [
+            { label: '2023', data: topMontant.map(e => e.m2023), backgroundColor: '#60a5fa' },
+            { label: '2024', data: topMontant.map(e => e.m2024), backgroundColor: '#3b82f6' },
+            { label: '2025', data: topMontant.map(e => e.m2025), backgroundColor: '#1d4ed8' }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+      });
+
+      if (epciPieChartInstance) epciPieChartInstance.destroy();
+      epciPieChartInstance = new Chart(document.getElementById('epciPieChart'), {
+        type: 'doughnut',
+        data: {
+          labels: topMontant.map(e => e.epci),
+          datasets: [{
+            data: topMontant.map(e => e.montantTotal),
+            backgroundColor: ['#8b5cf6', '#a78bfa', '#c084fc', '#e879f9', '#f43f5e', '#fb923c', '#facc15', '#4ade80', '#2dd4bf', '#38bdf8', '#818cf8']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      if (isTopCommunesVisible) renderCommunesChart();
+    }
+
+    function renderCommunesChart() {
+      const field = communeChartMode === 'ratio' ? 'ratio' : 'montantTotal';
+      const top15 = [...processedCommunes].sort((a, b) => b[field] - a[field]).slice(0, 15);
+
+      if (communesChartInstance) communesChartInstance.destroy();
+      communesChartInstance = new Chart(document.getElementById('communesChart'), {
+        type: 'bar',
+        data: {
+          labels: top15.map(c => c.nom),
+          datasets: [{
+            label: communeChartMode === 'ratio' ? 'Ratio (€/hab.)' : 'Montant Total (€)',
+            data: top15.map(c => c[field]),
+            backgroundColor: '#6366f1',
+            borderRadius: 6
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    // --- CARTE LEAFLET + GOOGLE MAPS ---
     function initMap() {
       const googleRoadmap = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
         maxZoom: 20,
@@ -253,45 +770,24 @@
         "Google Satellite": googleSatellite
       }).addTo(map);
 
-      // Fond optionnel EPCI
       fetch('https://geo.api.gouv.fr/departements/22/epcis?format=geojson&geometry=contour&fields=nom,code')
         .then(res => res.json())
         .then(data => {
           L.geoJSON(data, {
-            style: { color: '#8b5cf6', weight: 1.5, fillColor: '#c084fc', fillOpacity: 0.05, interactive: false }
+            style: { color: '#8b5cf6', weight: 2, fillColor: '#c084fc', fillOpacity: 0.08, interactive: false }
           }).addTo(map);
         }).catch(() => {});
     }
 
-    // --- CHARGEMENT JSON ---
-    async function loadJSONData() {
-      try {
-        const response = await fetch('fonds_vert_22.json');
-        datasetCommunes = await response.json();
-        
-        document.getElementById('status-text').innerText = "Données chargées — " + datasetCommunes.length + " communes répertoriées.";
-        updateViews();
-      } catch (err) {
-        document.getElementById('status-text').innerText = "Erreur : Assurez-vous que fonds_vert_22.json est présent sur le dépôt.";
-      }
-    }
-
-    function updateViews() {
-      renderMapPoints();
-      if (!document.getElementById('view-stats').classList.contains('hidden')) {
-        renderCharts();
-      }
-    }
-
-    // --- AFFICHAGE CARTE ---
     function renderMapPoints() {
+      if (!map) return;
       markersGroup.clearLayers();
-      const selectedYear = document.getElementById('year-select').value;
+      const selectedYear = yearSelect.value;
 
-      datasetCommunes.forEach(commune => {
-        const filteredProjects = commune.projects.filter(p => selectedYear === 'ALL' || p.annee === selectedYear);
-        const hasData = filteredProjects.length > 0;
-        const totalMontant = filteredProjects.reduce((sum, p) => sum + p.montant, 0);
+      rawJSONCommunes.forEach(commune => {
+        const projects = commune.projects.filter(p => selectedYear === 'ALL' || p.annee === selectedYear);
+        const hasData = projects.length > 0;
+        const totalMontant = projects.reduce((sum, p) => sum + p.montant, 0);
 
         let radius = hasData ? Math.max(6, Math.min(22, Math.sqrt(totalMontant / 6000))) : 3.5;
         let fillColor = hasData ? '#10b981' : '#94a3b8';
@@ -308,148 +804,16 @@
 
         circle.bindTooltip(`
           <strong>${commune.nom} (${commune.code})</strong><br/>
-          ${hasData ? `${filteredProjects.length} dossier(s)<br/><strong>${totalMontant.toLocaleString('fr-FR')} €</strong>` : 'Aucun dossier'}
+          ${hasData ? `${projects.length} dossier(s)<br/><strong>${totalMontant.toLocaleString('fr-FR')} €</strong>` : 'Aucun dossier'}
         `, { sticky: true });
 
-        circle.on('click', () => openModal(commune, filteredProjects, totalMontant));
+        circle.on('click', () => {
+          toggleCommuneDetail(commune.code);
+          switchTab('stats');
+        });
+
         markersGroup.addLayer(circle);
       });
-    }
-
-    // --- VUE ANALYSE & CHART.JS ---
-    function renderCharts() {
-      const selectedYear = document.getElementById('year-select').value;
-
-      let totalMontant = 0;
-      let totalDossiers = 0;
-      let communesFinancées = 0;
-      
-      let yearStats = { '2023': 0, '2024': 0, '2025': 0 };
-      let communesStats = [];
-      let demarchesStats = {};
-
-      datasetCommunes.forEach(c => {
-        const projects = c.projects.filter(p => selectedYear === 'ALL' || p.annee === selectedYear);
-        if (projects.length > 0) {
-          communesFinancées++;
-          let comTotal = 0;
-
-          projects.forEach(p => {
-            totalMontant += p.montant;
-            totalDossiers++;
-            comTotal += p.montant;
-
-            if (yearStats[p.annee] !== undefined) {
-              yearStats[p.annee] += p.montant;
-            }
-
-            const demKey = p.demarche || 'Autre';
-            demarchesStats[demKey] = (demarchesStats[demKey] || 0) + p.montant;
-          });
-
-          communesStats.push({ nom: c.nom, montant: comTotal });
-        }
-      });
-
-      // MÀJ KPIs
-      document.getElementById('kpi-total-montant').innerText = totalMontant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-      document.getElementById('kpi-total-dossiers').innerText = totalDossiers;
-      document.getElementById('kpi-communes-count').innerText = communesFinancées;
-      document.getElementById('kpi-avg-montant').innerText = totalDossiers > 0 
-        ? (totalMontant / totalDossiers).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-        : '0 €';
-
-      // Graphique 1 : Évolution annuelle
-      if (chartYearly) chartYearly.destroy();
-      chartYearly = new Chart(document.getElementById('chart-yearly'), {
-        type: 'bar',
-        data: {
-          labels: ['2023', '2024', '2025'],
-          datasets: [{
-            label: 'Montant Total (€)',
-            data: [yearStats['2023'], yearStats['2024'], yearStats['2025']],
-            backgroundColor: '#10b981',
-            borderRadius: 8
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-
-      // Graphique 2 : Top 10 Communes
-      communesStats.sort((a, b) => b.montant - a.montant);
-      const top10 = communesStats.slice(0, 10);
-
-      if (chartTopCommunes) chartTopCommunes.destroy();
-      chartTopCommunes = new Chart(document.getElementById('chart-top-communes'), {
-        type: 'bar',
-        data: {
-          labels: top10.map(c => c.nom),
-          datasets: [{
-            label: 'Montant (€)',
-            data: top10.map(c => c.montant),
-            backgroundColor: '#3b82f6',
-            borderRadius: 8
-          }]
-        },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-
-      // Graphique 3 : Démarches
-      const demarchesSorted = Object.entries(demarchesStats).sort((a, b) => b[1] - a[1]).slice(0, 8);
-
-      if (chartDemarches) chartDemarches.destroy();
-      chartDemarches = new Chart(document.getElementById('chart-demarches'), {
-        type: 'bar',
-        data: {
-          labels: demarchesSorted.map(d => d[0].length > 35 ? d[0].substring(0, 35) + '...' : d[0]),
-          datasets: [{
-            label: 'Montant Cumulé (€)',
-            data: demarchesSorted.map(d => d[1]),
-            backgroundColor: '#8b5cf6',
-            borderRadius: 8
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-    }
-
-    // --- MODALE DETAIL ---
-    function openModal(commune, projects, totalMontant) {
-      document.getElementById('modal-commune-code').innerText = commune.code;
-      document.getElementById('modal-commune-nom').innerText = commune.nom;
-      document.getElementById('modal-total-count').innerText = projects.length;
-      document.getElementById('modal-total-montant').innerText = totalMontant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-
-      const container = document.getElementById('modal-projects-list');
-
-      if (projects.length === 0) {
-        container.innerHTML = `<div class="p-4 bg-slate-50 text-slate-400 text-xs text-center rounded-xl">Aucun dossier Fonds Vert pour cette commune sur cette période.</div>`;
-      } else {
-        container.innerHTML = projects.map(p => `
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-            <div class="flex justify-between items-start gap-2">
-              <div>
-                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded uppercase">${p.annee}</span>
-                <span class="text-xs font-mono text-slate-400 ml-2">Dossier N° ${p.numDossier}</span>
-                <h5 class="text-xs font-bold text-slate-800 mt-1">${p.demarche}</h5>
-              </div>
-              <span class="text-xs font-bold text-emerald-600 bg-white px-2 py-1 rounded border border-slate-200 whitespace-nowrap">
-                ${p.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
-              </span>
-            </div>
-            <div class="text-xs text-slate-700 bg-white p-3 rounded-lg border border-slate-100 leading-relaxed whitespace-pre-line">
-              <strong class="text-slate-400 uppercase text-[10px] block mb-1">Résumé du projet :</strong>
-              ${p.resume}
-            </div>
-          </div>
-        `).join('');
-      }
-
-      document.getElementById('commune-modal').classList.remove('hidden');
-    }
-
-    function closeModal() {
-      document.getElementById('commune-modal').classList.add('hidden');
     }
   </script>
 </body>

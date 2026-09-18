@@ -30,19 +30,6 @@
       color: #FFFFFF;
       box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
     }
-    /* Style moderne et clair pour les étiquettes EPCI sur la carte */
-    .epci-label {
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid #8b5cf6;
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 11px;
-      font-weight: 600;
-      color: #5b21b6;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      white-space: nowrap;
-    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
@@ -251,8 +238,10 @@
           <span>Cartographie — Puces positionnées sur le centroïde de chaque commune bénéficiaire</span>
         </div>
         <div class="flex items-center gap-4 text-slate-600 font-medium">
-          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded border-2 border-purple-600 inline-block"></span> Contours & Étiquettes EPCI</div>
-          <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-700 inline-block"></span> Commune bénéficiaire</div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded border-2 border-purple-600 inline-block"></span> Contours EPCI</div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> 2025</div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> 2024</div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> 2023</div>
         </div>
       </div>
 
@@ -721,9 +710,9 @@
         data: {
           labels: topMontant.map(e => e.epci.length > 15 ? e.epci.substring(0, 15) + '...' : e.epci),
           datasets: [
-            { label: '2023', data: topMontant.map(e => e.m2023), backgroundColor: '#60a5fa' },
+            { label: '2023', data: topMontant.map(e => e.m2023), backgroundColor: '#f59e0b' },
             { label: '2024', data: topMontant.map(e => e.m2024), backgroundColor: '#3b82f6' },
-            { label: '2025', data: topMontant.map(e => e.m2025), backgroundColor: '#1d4ed8' }
+            { label: '2025', data: topMontant.map(e => e.m2025), backgroundColor: '#10b981' }
           ]
         },
         options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
@@ -765,7 +754,7 @@
       });
     }
 
-    // --- CARTE LEAFLET : OSM & IGN PHOTO AVEC ÉTIQUETTES EPCI ---
+    // --- CARTE LEAFLET : OSM & IGN PHOTO (COULEURS PAR ANNÉE) ---
     function initMap() {
       const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -790,7 +779,7 @@
         "IGN Vue Aérienne (Orthophoto)": ignOrtho
       }).addTo(map);
 
-      // Chargement du GeoJSON local epci_simple.geojson avec étiquetage automatique
+      // Chargement du fichier geojson local (epci_simple.geojson) avec contour mauve et pas de remplissage
       fetch('epci_simple.geojson')
         .then(res => res.json())
         .then(data => {
@@ -800,27 +789,9 @@
               weight: 2, 
               fillOpacity: 0, // Pas de remplissage
               interactive: false 
-            },
-            onEachFeature: (feature, layer) => {
-              // Récupération du nom de l'EPCI dans les propriétés (selon la structure du geojson, ex: nom ou libelle)
-              const epciName = feature.properties.nom || feature.properties.libelle || "EPCI";
-              
-              // Calcul du centre visuel de chaque polygone EPCI pour ancrer l'étiquette
-              const center = layer.getBounds().getCenter();
-              
-              // Ajout d'une étiquette permanente avec la classe CSS moderne
-              L.marker(center, {
-                icon: L.divIcon({
-                  className: 'epci-label-container',
-                  html: `<div class="epci-label">${epciName}</div>`,
-                  iconSize: [120, 24],
-                  iconAnchor: [60, 12]
-                }),
-                interactive: false
-              }).addTo(map);
             }
           }).addTo(map);
-        }).catch(() => console.log("Fichier epci_simple.geojson non trouvé ou invalide"));
+        }).catch(() => {});
     }
 
     function renderMapPoints() {
@@ -828,22 +799,33 @@
       markersGroup.clearLayers();
       const selectedYear = yearSelect.value;
 
+      // Correspondance des couleurs par année
+      const yearColors = {
+        '2025': '#10b981', // Vert émeraude
+        '2024': '#3b82f6', // Bleu
+        '2023': '#f59e0b'  // Ambre / Orange
+      };
+
       rawJSONCommunes.forEach(commune => {
         const projects = commune.projects.filter(p => selectedYear === 'ALL' || p.annee === selectedYear);
         const hasData = projects.length > 0;
         
         if (!hasData) return;
 
+        // Détermination de la couleur selon l'année (si 'ALL', on prend l'année la plus récente des projets filtrés)
+        const activeYear = selectedYear === 'ALL' ? Math.max(...projects.map(p => parseInt(p.annee))).toString() : selectedYear;
+        const fillColor = yearColors[activeYear] || '#10b981';
+
         const totalMontant = projects.reduce((sum, p) => sum + p.montant, 0);
         let radius = Math.max(6, Math.min(22, Math.sqrt(totalMontant / 6000)));
 
         const circle = L.circleMarker([commune.lat, commune.lng], {
           radius: radius,
-          fillColor: '#10b981',
-          color: '#047857',
+          fillColor: fillColor,
+          color: '#1e293b',
           weight: 1.5,
           opacity: 1,
-          fillOpacity: 0.8
+          fillOpacity: 0.85
         });
 
         circle.bindTooltip(`

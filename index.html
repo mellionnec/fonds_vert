@@ -754,7 +754,7 @@
       });
     }
 
-    // --- CARTE LEAFLET : OSM & IGN PHOTO (COULEURS PAR ANNÉE) ---
+    // --- CARTE LEAFLET : OSM & IGN PHOTO (POPUP DE PROJETS DÉTAILLÉE AU CLIC) ---
     function initMap() {
       const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -779,15 +779,14 @@
         "IGN Vue Aérienne (Orthophoto)": ignOrtho
       }).addTo(map);
 
-      // Chargement du fichier geojson local (epci_simple.geojson) avec contour mauve et pas de remplissage
       fetch('epci_simple.geojson')
         .then(res => res.json())
         .then(data => {
           L.geoJSON(data, {
             style: { 
-              color: '#8b5cf6', // Mauve
+              color: '#8b5cf6', 
               weight: 2, 
-              fillOpacity: 0, // Pas de remplissage
+              fillOpacity: 0, 
               interactive: false 
             }
           }).addTo(map);
@@ -799,11 +798,10 @@
       markersGroup.clearLayers();
       const selectedYear = yearSelect.value;
 
-      // Correspondance des couleurs par année
       const yearColors = {
-        '2025': '#10b981', // Vert émeraude
-        '2024': '#3b82f6', // Bleu
-        '2023': '#f59e0b'  // Ambre / Orange
+        '2025': '#10b981',
+        '2024': '#3b82f6',
+        '2023': '#f59e0b'
       };
 
       rawJSONCommunes.forEach(commune => {
@@ -812,7 +810,6 @@
         
         if (!hasData) return;
 
-        // Détermination de la couleur selon l'année (si 'ALL', on prend l'année la plus récente des projets filtrés)
         const activeYear = selectedYear === 'ALL' ? Math.max(...projects.map(p => parseInt(p.annee))).toString() : selectedYear;
         const fillColor = yearColors[activeYear] || '#10b981';
 
@@ -833,15 +830,25 @@
           ${projects.length} dossier(s)<br/><strong>${totalMontant.toLocaleString('fr-FR')} €</strong>
         `, { sticky: true });
 
-        circle.on('click', () => {
-          expandedCommuneCode = commune.code;
-          renderCommunesTable();
-          
-          const communeObj = processedCommunes.find(c => c.code === commune.code);
-          if (communeObj) {
-            circle.bindPopup(`<b>${commune.nom}</b><br>Montant total : ${communeObj.montantTotal.toLocaleString('fr-FR')} €<br><a href="#" onclick="switchTab('stats'); return false;" class="text-indigo-600 font-bold underline mt-1 block">Voir le détail dans le tableau &rarr;</a>`).openPopup();
-          }
-        });
+        // Création de la popup détaillée au clic sur le cercle
+        let projectsHtml = projects.map(p => `
+          <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
+            <div style="font-size: 11px; font-weight: bold; color: #059669;">[${p.annee}] — ${p.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
+            <div style="font-weight: bold; color: #1e293b; margin-top: 2px;">${p.demarche}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px; max-height: 80px; overflow-y: auto;">${p.resume || 'Aucun résumé.'}</div>
+          </div>
+        `).join('');
+
+        const popupContent = `
+          <div style="max-width: 280px; max-height: 250px; overflow-y: auto; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px;">
+            <div style="font-weight: bold; font-size: 14px; color: #0f172a; margin-bottom: 4px;">${commune.nom}</div>
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">Total subventions : <strong>${totalMontant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</strong></div>
+            ${projectsHtml}
+            <a href="#" onclick="expandedCommuneCode='${commune.code}'; renderCommunesTable(); switchTab('stats'); return false;" style="color: #4f46e5; font-weight: bold; text-decoration: underline; display: block; margin-top: 6px;">Voir dans le tableau &rarr;</a>
+          </div>
+        `;
+
+        circle.bindPopup(popupContent);
 
         markersGroup.addLayer(circle);
       });

@@ -91,11 +91,11 @@
       </div>
     </header>
 
-    <!-- BANNIÈRE DE STATUT -->
+    <!-- BANNIÈRE DE STATUT AVEC COMPTE À REBOURS -->
     <div id="status-banner" class="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-sm flex items-center justify-between">
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-spinner fa-spin text-blue-600 text-lg" id="status-icon"></i>
-        <span id="status-text">Chargement et agrégation du fichier <strong>fonds_verts_bretagne.json</strong>...</span>
+        <span id="status-text">Chargement des données régionales (0s)...</span>
       </div>
     </div>
 
@@ -128,10 +128,11 @@
       <!-- Graphiques EPCI -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-users text-emerald-600"></i> Ratio par Habitant (€ / hab.)
+          <h3 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+            <i class="fa-solid fa-users text-emerald-600"></i> Ratio par Habitant (€ / hab.)*
           </h3>
-          <div class="relative h-72">
+          <p class="text-[11px] text-slate-400 mb-4">* Hors communes hors EPCI</p>
+          <div class="relative h-64">
             <canvas id="ratioChart"></canvas>
           </div>
         </div>
@@ -223,9 +224,9 @@
           <span>Cartographie — Puces positionnées sur le centroïde de chaque commune bénéficiaire</span>
         </div>
         <div class="flex items-center gap-4 text-slate-600 font-medium">
-          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> 2025</div>
-          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> 2024</div>
-          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> 2023</div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#10b981] inline-block"></span> 2025</div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#3b82f6] inline-block"></span> 2024</div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#f59e0b] inline-block"></span> 2023</div>
         </div>
       </div>
 
@@ -282,7 +283,6 @@
     let processedCommunes = [];
     let processedEPCI = [];
     let cacheGeoMap = {};
-    let cacheCoordsMap = {};
 
     let expandedCommuneCode = null;
     let epciSort = { col: 'ratio', asc: false };
@@ -300,6 +300,13 @@
     const statusIcon = document.getElementById('status-icon');
     const yearSelect = document.getElementById('year-select');
     const deptSelect = document.getElementById('dept-select');
+
+    // Formatage des noms de communes : minuscule, première lettre majuscule
+    function formatNomCommune(nom) {
+      if (!nom) return "";
+      let lower = nom.toLowerCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    }
 
     window.addEventListener('DOMContentLoaded', async () => {
       initMap();
@@ -339,30 +346,33 @@
       if (cacheGeoMap[codeInsee]) return cacheGeoMap[codeInsee];
       try {
         const res = await fetch(`https://geo.api.gouv.fr/communes/${codeInsee}?fields=nom,population,epci,centre`);
-        if (!res.ok) return { epci: "Commune isolée", population: 0, coords: null };
+        if (!res.ok) return { epci: "(Commune hors EPCI)", population: 0, coords: null };
         const data = await res.json();
         const info = {
-          epci: data.epci ? data.epci.nom : "Commune isolée",
+          epci: data.epci ? data.epci.nom : "(Commune hors EPCI)",
           population: data.population || 0,
           coords: data.centre && data.centre.coordinates ? [data.centre.coordinates[1], data.centre.coordinates[0]] : null
         };
         cacheGeoMap[codeInsee] = info;
         return info;
       } catch (err) {
-        return { epci: "Non localisé", population: 0, coords: null };
+        return { epci: "(Commune hors EPCI)", population: 0, coords: null };
       }
     }
 
-    // --- CHARGEMENT DU JSON ---
+    // --- CHARGEMENT DU JSON AVEC COMPTE À REBOURS ---
     async function fetchAndProcessJSON() {
+      let seconds = 0;
+      const timer = setInterval(() => {
+        seconds++;
+        statusText.innerHTML = `Chargement des données régionales (${seconds}s)...`;
+      }, 1000);
+
       try {
         const res = await fetch('fonds_verts_bretagne.json');
         if (!res.ok) throw new Error("Fichier JSON non trouvé");
         rawJSONData = await res.json();
 
-        statusText.innerHTML = `Récupération des métadonnées géographiques (API Géo) pour ${rawJSONData.length} enregistrements...`;
-
-        // Enrichissement asynchrone des communes uniques
         const uniqueCodes = [...new Set(rawJSONData.map(item => item.code_commune))];
         for (let code of uniqueCodes) {
           if (code && code !== "00000") {
@@ -370,11 +380,13 @@
           }
         }
 
+        clearInterval(timer);
         analyzeAndRenderData();
       } catch (err) {
+        clearInterval(timer);
         statusBanner.className = "mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-3";
         statusIcon.className = "fa-solid fa-circle-exclamation text-red-600 text-lg";
-        statusText.innerHTML = "Erreur : Assurez-vous que le fichier <strong>fonds_verts_bretagne.json</strong> est bien présent dans le même dossier.";
+        statusText.innerHTML = "Erreur : Le fichier <strong>fonds_verts_bretagne.json</strong> est introuvable.";
       }
     }
 
@@ -383,7 +395,6 @@
       const selectedYear = yearSelect.value;
       const selectedDept = deptSelect.value;
 
-      // Filtrage brut selon l'année et le département
       const filteredRecords = rawJSONData.filter(item => {
         const matchYear = (selectedYear === 'ALL' || String(item.annee) === selectedYear);
         const matchDept = (selectedDept === 'ALL' || String(item.code_departement) === selectedDept);
@@ -396,7 +407,6 @@
       let totalDossiersGlobal = 0;
       let totalMontantGlobal = 0;
       let totalPopGlobal = 0;
-      let populatedCommunesSet = new Set();
 
       filteredRecords.forEach(item => {
         totalDossiersGlobal++;
@@ -404,14 +414,15 @@
         totalMontantGlobal += montant;
 
         const codeCom = item.code_commune;
-        const geo = cacheGeoMap[codeCom] || { epci: "Commune isolée", population: 0, coords: null };
+        const geo = cacheGeoMap[codeCom] || { epci: "(Commune hors EPCI)", population: 0, coords: null };
         const epciName = geo.epci;
         const pop = geo.population;
+        const nomComFormatted = formatNomCommune(item.nom_commune);
 
         if (!communesMap[codeCom]) {
           communesMap[codeCom] = {
             code: codeCom,
-            nom: item.nom_commune || "Inconnue",
+            nom: nomComFormatted,
             epci: epciName,
             count: 0,
             montantTotal: 0,
@@ -419,8 +430,7 @@
             dossiers: [],
             coords: geo.coords
           };
-          if (pop > 0) {
-            populatedCommunesSet.add(codeCom);
+          if (pop > 0 && epciName !== "(Commune hors EPCI)") {
             totalPopGlobal += pop;
           }
         }
@@ -445,7 +455,7 @@
         if (String(item.annee) === '2024') epciMap[epciName].m2024 += montant;
         if (String(item.annee) === '2025') epciMap[epciName].m2025 += montant;
 
-        if (!epciMap[epciName]._coms.has(codeCom)) {
+        if (epciName !== "(Commune hors EPCI)" && !epciMap[epciName]._coms.has(codeCom)) {
           epciMap[epciName]._coms.add(codeCom);
           epciMap[epciName].population += pop;
         }
@@ -453,12 +463,12 @@
 
       processedCommunes = Object.values(communesMap).map(c => ({
         ...c,
-        ratio: c.population > 0 ? c.montantTotal / c.population : 0
+        ratio: c.population > 0 && c.epci !== "(Commune hors EPCI)" ? c.montantTotal / c.population : 0
       }));
 
       processedEPCI = Object.values(epciMap).map(e => ({
         ...e,
-        ratio: e.population > 0 ? e.montantTotal / e.population : 0
+        ratio: e.population > 0 && e.epci !== "(Commune hors EPCI)" ? e.montantTotal / e.population : 0
       }));
 
       const ratioMoyenGlobal = totalPopGlobal > 0 ? totalMontantGlobal / totalPopGlobal : 0;
@@ -525,7 +535,7 @@
           <td class="p-4 text-right text-slate-500">${e.m2024.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</td>
           <td class="p-4 text-right text-slate-500">${e.m2025.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</td>
           <td class="p-4 text-right font-bold text-slate-900">${e.montantTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
-          <td class="p-4 text-right font-bold text-emerald-600 bg-emerald-50/50 rounded-lg">${e.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €/hab.</td>
+          <td class="p-4 text-right font-bold text-emerald-600 bg-emerald-50/50 rounded-lg">${e.epci === "(Commune hors EPCI)" ? 'N/A' : e.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €/hab.'}</td>
         </tr>
       `).join('');
     }
@@ -568,7 +578,7 @@
             <td class="p-4 text-center font-bold text-indigo-600">${c.count}</td>
             <td class="p-4 text-right text-slate-600">${c.population.toLocaleString('fr-FR')} hab.</td>
             <td class="p-4 text-right font-medium text-slate-700">${c.montantTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
-            <td class="p-4 text-right font-bold text-emerald-600 bg-emerald-50/50 rounded-lg">${c.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €/hab.</td>
+            <td class="p-4 text-right font-bold text-emerald-600 bg-emerald-50/50 rounded-lg">${c.epci === "(Commune hors EPCI)" ? 'N/A' : c.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €/hab.'}</td>
           </tr>
         `;
 
@@ -639,15 +649,22 @@
       document.getElementById('project-modal').classList.add('hidden');
     }
 
-    // --- GRAPHIQUES CHART.JS ---
+    // --- GRAPHIQUES CHART.JS (EXCLUSION COMMUNES HORS EPCI DU RATIO) ---
     function renderCharts() {
-      const sortedEPCI = [...processedEPCI].sort((a, b) => b.ratio - a.ratio);
+      // Filtrer pour exclure les communes hors EPCI du graphe ratio
+      const validEPCI = processedEPCI.filter(e => e.epci !== "(Commune hors EPCI)");
+      const sortedEPCI = [...validEPCI].sort((a, b) => b.ratio - a.ratio);
+      
       const labels = sortedEPCI.map(e => e.epci);
       const ratios = sortedEPCI.map(e => e.ratio);
-      const m2023 = sortedEPCI.map(e => e.m2023);
-      const m2024 = sortedEPCI.map(e => e.m2024);
-      const m2025 = sortedEPCI.map(e => e.m2025);
-      const montants = sortedEPCI.map(e => e.montantTotal);
+
+      // Tous les EPCI pour les autres graphiques
+      const allEPCI = [...processedEPCI].sort((a, b) => b.montantTotal - a.montantTotal);
+      const labelsAll = allEPCI.map(e => e.epci);
+      const m2023 = allEPCI.map(e => e.m2023);
+      const m2024 = allEPCI.map(e => e.m2024);
+      const m2025 = allEPCI.map(e => e.m2025);
+      const montants = allEPCI.map(e => e.montantTotal);
 
       // Ratio Chart
       if (ratioChartInstance) ratioChartInstance.destroy();
@@ -665,7 +682,7 @@
       yearsChartInstance = new Chart(document.getElementById('yearsChart'), {
         type: 'bar',
         data: {
-          labels: labels,
+          labels: labelsAll,
           datasets: [
             { label: '2023', data: m2023, backgroundColor: '#f59e0b' },
             { label: '2024', data: m2024, backgroundColor: '#3b82f6' },
@@ -680,7 +697,7 @@
       epciPieChartInstance = new Chart(document.getElementById('epciPieChart'), {
         type: 'doughnut',
         data: {
-          labels: labels,
+          labels: labelsAll,
           datasets: [{ data: montants, backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e', '#6366f1', '#84cc16'] }]
         },
         options: { responsive: true, maintainAspectRatio: false }
@@ -689,7 +706,7 @@
 
     // --- CARTE LEAFLET ---
     function initMap() {
-      map = L.map('map').setView([48.2020, -2.9326], 8); // Centre de la Bretagne
+      map = L.map('map').setView([48.2020, -2.9326], 8);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
@@ -706,7 +723,7 @@
           const geo = cacheGeoMap[code];
           if (geo && geo.coords) {
             communePointMap[code] = {
-              nom: item.nom_commune,
+              nom: formatNomCommune(item.nom_commune),
               coords: geo.coords,
               total: 0,
               dossiers: []
@@ -721,7 +738,11 @@
       });
 
       Object.values(communePointMap).forEach(com => {
-        const color = com.dossiers.some(d => String(d.annee) === '2025') ? '#10b981' : (com.dossiers.some(d => String(d.annee) === '2024') ? '#3b82f6' : '#f59e0b');
+        // Détermination couleur principale de la puce selon la présence des années
+        const has2025 = com.dossiers.some(d => String(d.annee) === '2025');
+        const has2024 = com.dossiers.some(d => String(d.annee) === '2024');
+        const color = has2025 ? '#10b981' : (has2024 ? '#3b82f6' : '#f59e0b');
+
         const marker = L.circleMarker(com.coords, {
           radius: Math.min(Math.max(Math.sqrt(com.total) / 15, 6), 20),
           fillColor: color,
@@ -731,11 +752,29 @@
           fillOpacity: 0.8
         });
 
+        // Groupement des projets par année pour le popup carto
+        const dossiersByYear = {};
+        com.dossiers.forEach(d => {
+          if (!dossiersByYear[d.annee]) dossiersByYear[d.annee] = [];
+          dossiersByYear[d.annee].push(d);
+        });
+
+        let dossiersHtml = '';
+        Object.keys(dossiersByYear).sort().reverse().forEach(annee => {
+          const badgeColor = annee === '2025' ? 'bg-emerald-100 text-emerald-800' : (annee === '2024' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800');
+          dossiersHtml += `<div class="mt-2 font-semibold"><span class="px-1.5 py-0.5 rounded text-[10px] ${badgeColor}">${annee}</span></div>`;
+          dossiersByYear[annee].forEach(d => {
+            dossiersHtml += `<div class="text-[11px] text-slate-600 pl-2 border-l-2 border-slate-200 my-1">▪ ${d.demarche || d.nom_du_projet} (${d.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })})</div>`;
+          });
+        });
+
         marker.bindPopup(`
-          <div class="p-2 text-xs">
-            <strong>${com.nom}</strong><br>
-            Montant total : ${com.total.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}<br>
-            Nombre de dossiers : ${com.dossiers.length}
+          <div class="p-1 max-w-xs text-xs">
+            <strong class="text-sm text-slate-900">${com.nom}</strong><br>
+            <span class="text-[11px] text-slate-500">Total : <strong>${com.total.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</strong></span>
+            <div class="mt-1 max-h-40 overflow-y-auto pr-1">
+              ${dossiersHtml}
+            </div>
           </div>
         `);
         markersGroup.addLayer(marker);

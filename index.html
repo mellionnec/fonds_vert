@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Observatoire Fonds Vert — Région Bretagne</title>
     
-    <!-- Tailwind CSS pour un design pro et moderne -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- FontAwesome pour les icônes -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Leaflet CSS -->
@@ -20,23 +20,23 @@
     <style>
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        #map { height: calc(100vh - 220px); min-height: 500px; width: 100%; }
+        #map { height: calc(100vh - 220px); min-height: 520px; width: 100%; }
         th.sortable { cursor: pointer; user-select: none; }
         th.sortable:hover { background-color: #f1f5f9; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between font-sans">
 
-    <!-- HEADER / NAVIGATION PAR ONGLETS -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
                     <i class="fa-solid fa-leaf"></i>
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">Fonds Vert — Région Bretagne</h1>
-                    <p class="text-xs text-slate-500">Observatoire des subventions et de la transition écologique (2023-2025)</p>
+                    <p class="text-xs text-slate-500">Subventions, Intercommunalités (EPCI) & Ratios démographiques</p>
                 </div>
             </div>
 
@@ -52,8 +52,8 @@
         </div>
     </header>
 
-    <!-- BARRE DE FILTRAGE GLOBALE -->
-    <div class="bg-white border-b border-slate-200 py-3 shadow-2xs">
+    <!-- BARRE DE FILTRAGE -->
+    <div class="bg-white border-b border-slate-200 py-3">
         <div class="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
             <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                 <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
@@ -78,13 +78,13 @@
         </div>
     </div>
 
-    <!-- CONTENU PRINCIPAL -->
+    <!-- CONTENU -->
     <main class="max-w-7xl mx-auto px-4 py-8 w-full flex-grow">
 
         <!-- ==================== ONGLETS 1 : ANALYSE ==================== -->
         <div id="tab-analysis" class="tab-content active space-y-8">
             
-            <!-- KPIs CARDS -->
+            <!-- KPIs -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Subventions</span>
@@ -95,12 +95,12 @@
                     <div id="kpi-projets" class="text-2xl font-extrabold text-blue-600 mt-2">0</div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Communes Touchées</span>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Communes Bénéficiaires</span>
                     <div id="kpi-communes" class="text-2xl font-extrabold text-emerald-600 mt-2">0</div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Intercommunalités (EPCI)</span>
-                    <div id="kpi-epci" class="text-2xl font-extrabold text-purple-600 mt-2">0</div>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Ratio Moyen / Habitant</span>
+                    <div id="kpi-ratio" class="text-2xl font-extrabold text-purple-600 mt-2">0 €/hab.</div>
                 </div>
             </div>
 
@@ -111,9 +111,7 @@
                         <span><i class="fa-solid fa-chart-column text-blue-600 mr-2"></i> Ventilation par Année (€)</span>
                         <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
                     </summary>
-                    <div class="p-6 relative h-72">
-                        <canvas id="chartYear"></canvas>
-                    </div>
+                    <div class="p-6 relative h-72"><canvas id="chartYear"></canvas></div>
                 </details>
 
                 <details open class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
@@ -121,30 +119,29 @@
                         <span><i class="fa-solid fa-chart-bar text-purple-600 mr-2"></i> Top 10 des EPCI par Montant (€)</span>
                         <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
                     </summary>
-                    <div class="p-6 relative h-72">
-                        <canvas id="chartEpci"></canvas>
-                    </div>
+                    <div class="p-6 relative h-72"><canvas id="chartEpci"></canvas></div>
                 </details>
             </div>
 
-            <!-- TABLEAU SYNTHÈSE EPCI / COMMUNE -->
+            <!-- TABLEAU SYNTHÈSE EPCI / RATIO HABITANT -->
             <details open class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
                 <summary class="p-5 font-bold text-sm text-slate-800 cursor-pointer hover:bg-slate-50 transition border-b border-slate-100 flex items-center justify-between">
-                    <span><i class="fa-solid fa-table-cells text-emerald-600 mr-2"></i> Synthèse par EPCI & Communes</span>
+                    <span><i class="fa-solid fa-table-cells text-emerald-600 mr-2"></i> Synthèse par Intercommunalité (EPCI) & Ratios par Habitant</span>
                     <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
                 </summary>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm" id="summary-table">
+                    <table class="w-full text-left text-sm" id="epci-table">
                         <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] font-semibold border-b border-slate-100">
                             <tr>
-                                <th class="p-4 sortable" onclick="sortTable(0, 'summary-table')">EPCI ↕</th>
-                                <th class="p-4 sortable" onclick="sortTable(1, 'summary-table')">Commune ↕</th>
-                                <th class="p-4 text-center sortable" onclick="sortTable(2, 'summary-table')">Dossiers ↕</th>
-                                <th class="p-4 text-right sortable" onclick="sortTable(3, 'summary-table')">Montant Total (€) ↕</th>
+                                <th class="p-4 sortable" onclick="sortTable(0, 'epci-table')">EPCI ↕</th>
+                                <th class="p-4 text-center sortable" onclick="sortTable(1, 'epci-table')">Dossiers ↕</th>
+                                <th class="p-4 text-right sortable" onclick="sortTable(2, 'epci-table')">Population Cumulée ↕</th>
+                                <th class="p-4 text-right sortable" onclick="sortTable(3, 'epci-table')">Montant Total (€) ↕</th>
+                                <th class="p-4 text-right sortable font-bold text-slate-900" onclick="sortTable(4, 'epci-table')">Ratio (€ / hab.) ↕</th>
                             </tr>
                         </thead>
-                        <tbody id="summary-tbody" class="divide-y divide-slate-100 text-slate-700">
-                            <tr><td colspan="4" class="p-6 text-center text-slate-400">Chargement des données...</td></tr>
+                        <tbody id="epci-tbody" class="divide-y divide-slate-100 text-slate-700">
+                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Chargement...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -162,14 +159,13 @@
                             <tr>
                                 <th class="p-4 sortable" onclick="sortTable(0, 'projects-table')">Intitulé du Projet ↕</th>
                                 <th class="p-4 sortable" onclick="sortTable(1, 'projects-table')">Année ↕</th>
-                                <th class="p-4 sortable" onclick="sortTable(2, 'projects-table')">Dpt ↕</th>
-                                <th class="p-4 sortable" onclick="sortTable(3, 'projects-table')">EPCI ↕</th>
-                                <th class="p-4 sortable" onclick="sortTable(4, 'projects-table')">Commune ↕</th>
-                                <th class="p-4 text-right sortable" onclick="sortTable(5, 'projects-table')">Montant (€) ↕</th>
+                                <th class="p-4 sortable" onclick="sortTable(2, 'projects-table')">EPCI ↕</th>
+                                <th class="p-4 sortable" onclick="sortTable(3, 'projects-table')">Commune (Pop.) ↕</th>
+                                <th class="p-4 text-right sortable" onclick="sortTable(4, 'projects-table')">Montant (€) ↕</th>
                             </tr>
                         </thead>
                         <tbody id="projects-tbody" class="divide-y divide-slate-100 text-slate-700">
-                            <tr><td colspan="6" class="p-6 text-center text-slate-400">Chargement des données...</td></tr>
+                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Chargement...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -179,17 +175,15 @@
 
         <!-- ==================== ONGLSTS 2 : CARTOGRAPHIE ==================== -->
         <div id="tab-carto" class="tab-content space-y-4">
-            <!-- CARTE LÉGENDE & CONTENEUR -->
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-4 text-xs">
                 <div class="flex items-center gap-2 text-slate-700 font-semibold">
                     <i class="fa-solid fa-circle-info text-emerald-600 text-sm"></i>
-                    <span>Taille des cercles proportionnelle au montant subventionné — Code couleur par année d'exercice</span>
+                    <span>Cercles proportionnels au montant subventionné — Code couleur par année</span>
                 </div>
                 <div class="flex items-center gap-4 font-medium text-slate-600">
                     <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#3b82f6] inline-block"></span> 2023</div>
                     <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#f59e0b] inline-block"></span> 2024</div>
                     <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#10b981] inline-block"></span> 2025</div>
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#8b5cf6] inline-block"></span> Autres</div>
                 </div>
             </div>
 
@@ -200,9 +194,9 @@
 
     </main>
 
-    <!-- PIED DE PAGE -->
+    <!-- FOOTER -->
     <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
-        <p>Observatoire Fonds Vert Bretagne — Données issues de <strong class="text-slate-700">data.gouv.fr</strong></p>
+        <p>Observatoire Fonds Vert Bretagne — Rattaché via l'API Officielle IGN / geo.api.gouv.fr</p>
     </footer>
 
     <!-- Leaflet JS -->
@@ -215,19 +209,17 @@
         let map, markersLayer;
         let chartYearInstance = null, chartEpciInstance = null;
 
-        // Code couleur strict par année
         const yearColors = {
-            '2023': '#3b82f6', // Bleu
-            '2024': '#f59e0b', // Orange
-            '2025': '#10b981', // Vert émeraude
-            'default': '#8b5cf6' // Violet
+            '2023': '#3b82f6',
+            '2024': '#f59e0b',
+            '2025': '#10b981',
+            'default': '#8b5cf6'
         };
 
         function getColorForYear(year) {
             return yearColors[String(year)] || yearColors['default'];
         }
 
-        // Gestion des onglets
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('header button').forEach(el => {
@@ -245,7 +237,6 @@
             }
         }
 
-        // Initialisation de la carte Leaflet
         function initMap() {
             map = L.map('map').setView([48.202, -2.932], 8);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -255,12 +246,8 @@
             markersLayer = L.layerGroup().addTo(map);
         }
 
-        // Chargement des données JSON
         fetch(jsonUrl)
-            .then(res => {
-                if (!res.ok) throw new Error("Fichier introuvable.");
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 allData = Array.isArray(data) ? data : (data.features || []);
                 
@@ -268,12 +255,13 @@
                     const props = item.properties || item;
                     return {
                         id: index,
-                        nom: props.nom_du_projet || props.nom || props.libelle || `Projet ${index + 1}`,
+                        nom: props.nom_du_projet || props.nom || `Projet ${index + 1}`,
                         annee: String(props.annee || 'N/C'),
-                        departement: String(props.code_departement || props.departement || 'N/C'),
-                        epci: props.libelle_epci || props.epci || 'Non rattaché',
-                        commune: props.nom_commune || props.commune || 'Inconnue',
-                        montant: parseFloat(props.montant_engage || props.montant || 0),
+                        departement: String(props.code_departement || 'N/C'),
+                        epci: props.libelle_epci || 'Non rattaché',
+                        commune: props.nom_commune || 'Inconnue',
+                        population: Number(props.population) || 0,
+                        montant: Number(props.montant_engage) || 0,
                         coordinates: item.geometry && item.geometry.coordinates ? item.geometry.coordinates : 
                                      (props.longitude && props.latitude ? [parseFloat(props.longitude), parseFloat(props.latitude)] : null)
                     };
@@ -289,7 +277,7 @@
             .catch(err => {
                 console.error(err);
                 document.querySelectorAll('tbody').forEach(el => {
-                    el.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-semibold">Erreur de chargement du fichier fonds_vert_bretagne.json</td></tr>`;
+                    el.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 font-semibold">Erreur de chargement du fichier JSON</td></tr>`;
                 });
             });
 
@@ -329,7 +317,7 @@
 
             updateKPIs(filtered);
             renderCharts(filtered);
-            renderSummaryTable(filtered);
+            renderEpciTable(filtered);
             renderProjectsTable(filtered);
             renderMap(filtered);
         }
@@ -337,19 +325,23 @@
         function updateKPIs(data) {
             const totalMontant = data.reduce((acc, curr) => acc + curr.montant, 0);
             const communesSet = new Set(data.map(d => d.commune));
-            const epciSet = new Set(data.map(d => d.epci));
+            
+            // Calcul du ratio global par habitant sur les communes bénéficiaires uniques filtrées
+            const uniqueCommunesMap = {};
+            data.forEach(d => { uniqueCommunesMap[d.commune] = d.population; });
+            const totalPop = Object.values(uniqueCommunesMap).reduce((a, b) => a + b, 0);
+            const ratioGlobal = totalPop > 0 ? totalMontant / totalPop : 0;
 
             document.getElementById('kpi-montant').textContent = totalMontant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
             document.getElementById('kpi-projets').textContent = data.length.toLocaleString('fr-FR');
             document.getElementById('kpi-communes').textContent = communesSet.size.toLocaleString('fr-FR');
-            document.getElementById('kpi-epci').textContent = epciSet.size.toLocaleString('fr-FR');
+            document.getElementById('kpi-ratio').textContent = ratioGlobal.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €/hab.';
         }
 
         function renderMap(data) {
             if (!markersLayer) return;
             markersLayer.clearLayers();
             let bounds = [];
-
             const maxMontant = Math.max(...data.map(d => d.montant), 1);
 
             data.forEach(item => {
@@ -370,7 +362,7 @@
                     circle.bindPopup(`
                         <div class="p-1 text-xs space-y-1">
                             <strong class="text-sm block text-slate-900">${item.nom}</strong>
-                            <div><b>Commune :</b> ${item.commune} (${item.departement})</div>
+                            <div><b>Commune :</b> ${item.commune} (${item.population.toLocaleString('fr-FR')} hab.)</div>
                             <div><b>EPCI :</b> ${item.epci}</div>
                             <div><b>Année :</b> ${item.annee}</div>
                             <div class="font-bold text-emerald-600">Montant : ${item.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
@@ -396,7 +388,6 @@
 
             const topEpci = Object.entries(epciMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
 
-            // Graphique Années
             const ctxY = document.getElementById('chartYear').getContext('2d');
             if (chartYearInstance) chartYearInstance.destroy();
             chartYearInstance = new Chart(ctxY, {
@@ -412,7 +403,6 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            // Graphique EPCI
             const ctxE = document.getElementById('chartEpci').getContext('2d');
             if (chartEpciInstance) chartEpciInstance.destroy();
             chartEpciInstance = new Chart(ctxE, {
@@ -429,31 +419,39 @@
             });
         }
 
-        function renderSummaryTable(data) {
-            const mapSummary = {};
+        function renderEpciTable(data) {
+            const epciAgg = {};
             data.forEach(item => {
-                const key = item.epci + '___' + item.commune;
-                if (!mapSummary[key]) {
-                    mapSummary[key] = { epci: item.epci, commune: item.commune, count: 0, total: 0 };
+                if (!epciAgg[item.epci]) {
+                    epciAgg[item.epci] = { count: 0, montant: 0, communes: {} };
                 }
-                mapSummary[key].count++;
-                mapSummary[key].total += item.montant;
+                epciAgg[item.epci].count++;
+                epciAgg[item.epci].montant += item.montant;
+                epciAgg[item.epci].communes[item.commune] = item.population;
             });
 
-            const rows = Object.values(mapSummary);
+            const rows = Object.entries(epciAgg).map(([epci, vals]) => {
+                const totalPop = Object.values(vals.communes).reduce((a, b) => a + b, 0);
+                const ratio = totalPop > 0 ? vals.montant / totalPop : 0;
+                return { epci, count: vals.count, population: totalPop, montant: vals.montant, ratio };
+            });
+
+            rows.sort((a, b) => b.montant - a.montant);
+
             let html = '';
             rows.forEach(r => {
                 html += `
                     <tr class="hover:bg-slate-50 transition">
-                        <td class="p-4 font-semibold text-slate-800">${r.epci}</td>
-                        <td class="p-4 text-slate-600">${r.commune}</td>
+                        <td class="p-4 font-semibold text-slate-900">${r.epci}</td>
                         <td class="p-4 text-center font-bold text-blue-600">${r.count}</td>
-                        <td class="p-4 text-right font-extrabold text-slate-900">${r.total.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+                        <td class="p-4 text-right text-slate-600">${r.population.toLocaleString('fr-FR')} hab.</td>
+                        <td class="p-4 text-right font-extrabold text-slate-900">${r.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+                        <td class="p-4 text-right font-bold text-purple-600 bg-purple-50/40">${r.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €/hab.</td>
                     </tr>
                 `;
             });
-            if (rows.length === 0) html = `<tr><td colspan="4" class="p-6 text-center text-slate-400">Aucun résultat trouvé</td></tr>`;
-            document.getElementById('summary-tbody').innerHTML = html;
+            if (rows.length === 0) html = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Aucun résultat</td></tr>`;
+            document.getElementById('epci-tbody').innerHTML = html;
         }
 
         function renderProjectsTable(data) {
@@ -463,18 +461,16 @@
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-4 font-semibold text-slate-900">${item.nom}</td>
                         <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-bold" style="background:${getColorForYear(item.annee)}20; color:${getColorForYear(item.annee)};">${item.annee}</span></td>
-                        <td class="p-4 text-slate-600">${item.departement}</td>
                         <td class="p-4 text-slate-600 text-xs">${item.epci}</td>
-                        <td class="p-4 text-slate-700 font-medium">${item.commune}</td>
+                        <td class="p-4 text-slate-700 font-medium">${item.commune} <span class="text-xs text-slate-400">(${item.population.toLocaleString('fr-FR')} hab.)</span></td>
                         <td class="p-4 text-right font-bold text-emerald-600">${item.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
                     </tr>
                 `;
             });
-            if (data.length === 0) html = `<tr><td colspan="6" class="p-6 text-center text-slate-400">Aucun projet trouvé</td></tr>`;
+            if (data.length === 0) html = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Aucun projet trouvé</td></tr>`;
             document.getElementById('projects-tbody').innerHTML = html;
         }
 
-        // Tri intelligent des tableaux
         function sortTable(colIdx, tableId) {
             const table = document.getElementById(tableId);
             const tbody = table.querySelector('tbody');
@@ -488,7 +484,7 @@
                 let vA = a.cells[colIdx].textContent.trim();
                 let vB = b.cells[colIdx].textContent.trim();
 
-                if (vA.includes('€')) {
+                if (vA.includes('€') || vA.includes('hab.')) {
                     vA = parseFloat(vA.replace(/[^\d]/g, '')) || 0;
                     vB = parseFloat(vB.replace(/[^\d]/g, '')) || 0;
                     return asc ? vA - vB : vB - vA;

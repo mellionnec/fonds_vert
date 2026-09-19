@@ -373,7 +373,7 @@
       }, 1000);
 
       try {
-        // CORRECTION DU NOM DU FICHIER JSON ICI : fonds_vert_bretagne.json
+        // Solution 1 : Appel direct en relatif dans le même répertoire GitHub Pages
         const res = await fetch('fonds_vert_bretagne.json');
         if (!res.ok) throw new Error("Fichier JSON non trouvé");
         rawJSONData = await res.json();
@@ -391,7 +391,7 @@
         clearInterval(timer);
         statusBanner.className = "mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-3";
         statusIcon.className = "fa-solid fa-circle-exclamation text-red-600 text-lg";
-        statusText.innerHTML = "Erreur : Le fichier <strong>fonds_vert_bretagne.json</strong> est introuvable sur le dépôt GitHub.";
+        statusText.innerHTML = "Erreur : Le fichier <strong>fonds_vert_bretagne.json</strong> est introuvable dans le même dossier.";
       }
     }
 

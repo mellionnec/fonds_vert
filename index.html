@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Observatoire Fonds Vert — Région Bretagne</title>
   
+  <!-- Tailwind CSS & FontAwesome -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -30,7 +33,7 @@
       100% { width: 100%; }
     }
     .animate-progress {
-      animation: progress 2.5s ease-in-out infinite;
+      animation: progress 1.5s ease-in-out infinite;
     }
   </style>
 </head>
@@ -38,6 +41,7 @@
 
   <div class="max-w-7xl mx-auto px-4 py-8 w-full">
     
+    <!-- EN-TÊTE PRINCIPAL AVEC BANDEAU IMAGE BRETAGNE -->
     <header class="mb-8 rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
       <div class="absolute inset-0 bg-cover bg-center z-0" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80');"></div>
       <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-10"></div>
@@ -50,6 +54,7 @@
           </div>
 
           <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+            <!-- NAVIGATION ONGLETS -->
             <div class="bg-slate-900/70 backdrop-blur p-1 rounded-xl border border-white/20 flex items-center gap-1">
               <button id="tab-stats-btn" onclick="switchTab('stats')" class="tab-btn active px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2">
                 <i class="fa-solid fa-chart-pie"></i>
@@ -61,6 +66,7 @@
               </button>
             </div>
 
+            <!-- FILTRE DÉPARTEMENT -->
             <div class="flex items-center gap-2 bg-slate-900/70 backdrop-blur p-2 rounded-xl border border-white/20">
               <label for="dept-select" class="text-xs font-semibold text-slate-200 pl-1">Dpt :</label>
               <select id="dept-select" class="bg-slate-800 text-white text-sm font-semibold py-1.5 px-3 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
@@ -72,6 +78,7 @@
               </select>
             </div>
 
+            <!-- FILTRE EXERCICE -->
             <div class="flex items-center gap-2 bg-slate-900/70 backdrop-blur p-2 rounded-xl border border-white/20">
               <label for="year-select" class="text-xs font-semibold text-slate-200 pl-1">Exercice :</label>
               <select id="year-select" class="bg-slate-800 text-white text-sm font-semibold py-1.5 px-3 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
@@ -84,6 +91,7 @@
           </div>
         </div>
 
+        <!-- BANDEAU DES SOURCES -->
         <div class="pt-4 border-t border-white/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs text-slate-300">
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-database text-emerald-400"></i>
@@ -96,12 +104,14 @@
       </div>
     </header>
 
+    <!-- ÉCRAN DE CHARGEMENT AVEC DANSEUR BRETON ET BARRE DE PROGRESSION -->
     <div id="loading-banner" class="mb-6 p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col items-center justify-center space-y-4">
       <div class="flex items-center gap-4">
+        <!-- GIF animé danseur breton avec son petit chapeau rond -->
         <img src="https://media.giphy.com/media/3o7TKSjRrfIPjeiOkM/giphy.gif" alt="Danseur breton" class="w-16 h-16 object-contain rounded-full bg-slate-50 p-1 border border-slate-100 shadow-inner">
         <div>
           <h3 class="text-sm font-bold text-slate-900">Chargement des données bretonnes en cours...</h3>
-          <p id="loading-status-text" class="text-xs text-slate-500 mt-0.5">Connexion aux API géographiques et lecture du fichier JSON...</p>
+          <p id="loading-status-text" class="text-xs text-slate-500 mt-0.5">Lecture du fichier JSON...</p>
         </div>
       </div>
       <div class="w-full max-w-xl bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
@@ -109,8 +119,10 @@
       </div>
     </div>
 
+    <!-- ==================== ONGLET 1 : ANALYSE STATISTIQUE ==================== -->
     <main id="view-stats" class="space-y-8 hidden">
       
+      <!-- KPIs -->
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Dossiers</span>
@@ -133,12 +145,13 @@
         </div>
       </div>
 
+      <!-- Graphiques EPCI -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <h3 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
             <i class="fa-solid fa-users text-emerald-600"></i> Ratio par Habitant (€ / hab.)*
           </h3>
-          <p class="text-[11px] text-slate-400 mb-4">* Basé sur la population totale de l'EPCI (API Géo)</p>
+          <p class="text-[11px] text-slate-400 mb-4">* Basé sur la population des communes bénéficiaires</p>
           <div class="relative h-64">
             <canvas id="ratioChart"></canvas>
           </div>
@@ -163,11 +176,12 @@
         </div>
       </div>
 
+      <!-- TABLEAU 1 : SYNTHÈSE PAR EPCI -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex justify-between items-center">
           <div>
             <h3 class="text-base font-bold text-slate-800">Synthèse par EPCI</h3>
-            <p class="text-xs text-slate-400 mt-0.5">Population totale officielle de l'intercommunalité</p>
+            <p class="text-xs text-slate-400 mt-0.5">Synthèse financière et démographique</p>
           </div>
         </div>
         <div class="overflow-x-auto">
@@ -176,7 +190,7 @@
               <tr>
                 <th class="p-4 sortable" onclick="sortTable('epci', 'epci')">EPCI <span id="sort-epci-epci"></span></th>
                 <th class="p-4 text-center sortable" onclick="sortTable('epci', 'count')">Dossiers <span id="sort-epci-count"></span></th>
-                <th class="p-4 text-right sortable" onclick="sortTable('epci', 'population')">Population Totale <span id="sort-epci-population"></span></th>
+                <th class="p-4 text-right sortable" onclick="sortTable('epci', 'population')">Population <span id="sort-epci-population"></span></th>
                 <th class="p-4 text-right sortable" onclick="sortTable('epci', 'm2023')">2023 (€) <span id="sort-epci-m2023"></span></th>
                 <th class="p-4 text-right sortable" onclick="sortTable('epci', 'm2024')">2024 (€) <span id="sort-epci-m2024"></span></th>
                 <th class="p-4 text-right sortable" onclick="sortTable('epci', 'm2025')">2025 (€) <span id="sort-epci-m2025"></span></th>
@@ -189,6 +203,7 @@
         </div>
       </div>
 
+      <!-- TABLEAU 2 : DETAIL DES COMMUNES -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -221,6 +236,7 @@
 
     </main>
 
+    <!-- ==================== ONGLET 2 : CARTOGRAPHIE INTERACTIVE ==================== -->
     <main id="view-map" class="space-y-4 hidden">
       <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-sm">
         <div class="flex items-center gap-2 text-emerald-700 font-semibold">
@@ -242,6 +258,7 @@
 
   </div>
 
+  <!-- FENÊTRE MODALE POP-UP DE DÉTAIL DU PROJET -->
   <div id="project-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden">
       <div class="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-start">
@@ -286,8 +303,6 @@
     let rawJSONData = [];
     let processedCommunes = [];
     let processedEPCI = [];
-    let cacheGeoMap = {};
-    let cacheEpciPopulation = {};
 
     let expandedCommuneCode = null;
     let epciSort = { col: 'ratio', asc: false };
@@ -343,40 +358,6 @@
       }
     }
 
-    async function getGeoDetails(codeInsee) {
-      if (cacheGeoMap[codeInsee]) return cacheGeoMap[codeInsee];
-      try {
-        const res = await fetch(`https://geo.api.gouv.fr/communes/${codeInsee}?fields=nom,population,epci,centre`);
-        if (!res.ok) return { epci: "(Commune hors EPCI)", population: 0, coords: null, codeEpci: null };
-        const data = await res.json();
-        const info = {
-          epci: data.epci ? data.epci.nom : "(Commune hors EPCI)",
-          codeEpci: data.epci ? data.epci.code : null,
-          population: data.population || 0,
-          coords: data.centre && data.centre.coordinates ? [data.centre.coordinates[1], data.centre.coordinates[0]] : null
-        };
-        cacheGeoMap[codeInsee] = info;
-        return info;
-      } catch (err) {
-        return { epci: "(Commune hors EPCI)", population: 0, coords: null, codeEpci: null };
-      }
-    }
-
-    async function getEpciTotalPopulation(codeEpci) {
-      if (!codeEpci) return 0;
-      if (cacheEpciPopulation[codeEpci] !== undefined) return cacheEpciPopulation[codeEpci];
-      try {
-        const res = await fetch(`https://geo.api.gouv.fr/epcis/${codeEpci}/communes?fields=population`);
-        if (!res.ok) return 0;
-        const communes = await res.json();
-        const totalPop = communes.reduce((sum, com) => sum + (com.population || 0), 0);
-        cacheEpciPopulation[codeEpci] = totalPop;
-        return totalPop;
-      } catch (err) {
-        return 0;
-      }
-    }
-
     async function loadEpciGeoJson() {
       try {
         const res = await fetch('epci_simple.geojson');
@@ -408,17 +389,7 @@
         if (!res.ok) throw new Error("Fichier JSON non trouvé");
         rawJSONData = await res.json();
 
-        const uniqueCodes = [...new Set(rawJSONData.map(item => item.code_commune))];
-        for (let code of uniqueCodes) {
-          if (code && code !== "00000") {
-            const geo = await getGeoDetails(code);
-            if (geo.codeEpci) {
-              await getEpciTotalPopulation(geo.codeEpci);
-            }
-          }
-        }
-
-        // Masquer l'écran de chargement et afficher les statistiques
+        // Masquer l'écran de chargement et afficher l'application
         document.getElementById('loading-banner').classList.add('hidden');
         document.getElementById('view-stats').classList.remove('hidden');
 
@@ -444,19 +415,25 @@
       let totalDossiersGlobal = 0;
       let totalMontantGlobal = 0;
       let totalPopGlobal = 0;
-      let countedEpciPop = new Set();
 
       filteredRecords.forEach(item => {
         totalDossiersGlobal++;
         const montant = Number(item.montant_engage) || 0;
         totalMontantGlobal += montant;
 
-        const codeCom = item.code_commune;
-        const geo = cacheGeoMap[codeCom] || { epci: "(Commune hors EPCI)", population: 0, coords: null, codeEpci: null };
-        const epciName = geo.epci;
-        const pop = geo.population;
-        const codeEpci = geo.codeEpci;
-        const nomComFormatted = formatNomCommune(item.nom_commune);
+        const codeCom = item.code_commune || '00000';
+        const nomComFormatted = formatNomCommune(item.nom_commune || 'Inconnue');
+        const epciName = item.libelle_epci || item.epci || "(Commune hors EPCI)";
+        const pop = Number(item.population) || 0;
+        
+        // Coordonnées GPS directes depuis le JSON si présentes
+        let lat = Number(item.latitude || item.lat);
+        let lon = Number(item.longitude || item.lon || item.lng);
+        // Coordonnées par défaut approximatives en Bretagne si absentes
+        if (!lat || !lon) {
+          lat = 48.20 + (Math.random() * 0.5 - 0.25);
+          lon = -2.93 + (Math.random() * 0.8 - 0.4);
+        }
 
         if (!communesMap[codeCom]) {
           communesMap[codeCom] = {
@@ -467,43 +444,37 @@
             montantTotal: 0,
             population: pop,
             dossiers: [],
-            coords: geo.coords
+            coords: [lat, lon]
           };
+          if (pop > 0 && epciName !== "(Commune hors EPCI)") {
+            totalPopGlobal += pop;
+          }
         }
 
         communesMap[codeCom].count++;
         communesMap[codeCom].montantTotal += montant;
         communesMap[codeCom].dossiers.push({
           annee: item.annee,
-          numDossier: item.numero_dossier_ds,
-          demarche: item.demarche || item.nom_du_projet,
-          resume: item.description_projet,
+          numDossier: item.numero_dossier_ds || '-',
+          demarche: item.demarche || item.nom_du_projet || 'Projet Fonds Vert',
+          resume: item.description_projet || '',
           montant: montant,
-          beneficiaire: item.beneficiaire
+          beneficiaire: item.beneficiaire || ''
         });
 
         if (!epciMap[epciName]) {
-          const totalEpciPop = codeEpci ? (cacheEpciPopulation[codeEpci] || 0) : 0;
-          epciMap[epciName] = { 
-            epci: epciName, 
-            codeEpci: codeEpci, 
-            count: 0, 
-            montantTotal: 0, 
-            m2023: 0, 
-            m2024: 0, 
-            m2025: 0, 
-            population: totalEpciPop 
-          };
-          if (epciName !== "(Commune hors EPCI)" && !countedEpciPop.has(epciName)) {
-            countedEpciPop.add(epciName);
-            totalPopGlobal += totalEpciPop;
-          }
+          epciMap[epciName] = { epci: epciName, count: 0, montantTotal: 0, m2023: 0, m2024: 0, m2025: 0, population: 0, _coms: new Set() };
         }
         epciMap[epciName].count++;
         epciMap[epciName].montantTotal += montant;
         if (String(item.annee) === '2023') epciMap[epciName].m2023 += montant;
         if (String(item.annee) === '2024') epciMap[epciName].m2024 += montant;
         if (String(item.annee) === '2025') epciMap[epciName].m2025 += montant;
+
+        if (epciName !== "(Commune hors EPCI)" && !epciMap[epciName]._coms.has(codeCom)) {
+          epciMap[epciName]._coms.add(codeCom);
+          epciMap[epciName].population += pop;
+        }
       });
 
       processedCommunes = Object.values(communesMap).map(c => ({
@@ -526,7 +497,7 @@
       renderEPCITable();
       renderCommunesTable();
       renderCharts();
-      renderMapPoints(filteredRecords);
+      renderMapPoints(processedCommunes);
     }
 
     function sortTable(type, column) {
@@ -560,4 +531,240 @@
       updateSortIndicators('epci');
       const data = [...processedEPCI].sort((a, b) => {
         let valA = a[epciSort.col];
-        let valB =
+        let valB = b[epciSort.col];
+        if (typeof valA === 'string') return epciSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        return epciSort.asc ? valA - valB : valB - valA;
+      });
+
+      const tbody = document.getElementById('epci-table-body');
+      tbody.innerHTML = data.map(e => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="p-4 font-semibold text-slate-800">${e.epci}</td>
+          <td class="p-4 text-center font-bold text-blue-600">${e.count}</td>
+          <td class="p-4 text-right text-slate-600">${e.population.toLocaleString('fr-FR')} hab.</td>
+          <td class="p-4 text-right text-slate-500">${e.m2023.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</td>
+          <td class="p-4 text-right text-slate-500">${e.m2024.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</td>
+          <td class="p-4 text-right text-slate-500">${e.m2025.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</td>
+          <td class="p-4 text-right font-bold text-slate-900">${e.montantTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+          <td class="p-4 text-right font-bold text-emerald-600 bg-emerald-50/50 rounded-lg">${e.epci === "(Commune hors EPCI)" ? 'N/A' : e.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €/hab.'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function toggleCommuneDetail(codeCommune) {
+      expandedCommuneCode = (expandedCommuneCode === codeCommune) ? null : codeCommune;
+      renderCommunesTable();
+    }
+
+    function renderCommunesTable() {
+      updateSortIndicators('communes');
+      const search = document.getElementById('commune-search').value.toLowerCase();
+      
+      let filtered = processedCommunes.filter(c => 
+        c.nom.toLowerCase().includes(search) || 
+        c.code.includes(search) || 
+        c.epci.toLowerCase().includes(search)
+      );
+
+      filtered.sort((a, b) => {
+        let valA = a[communesSort.col];
+        let valB = b[communesSort.col];
+        if (typeof valA === 'string') return communesSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        return communesSort.asc ? valA - valB : valB - valA;
+      });
+
+      const tbody = document.getElementById('communes-table-body');
+      let html = '';
+
+      filtered.forEach(c => {
+        const isExpanded = (expandedCommuneCode === c.code);
+        html += `
+          <tr class="clickable-row border-b border-slate-100" onclick="toggleCommuneDetail('${c.code}')">
+            <td class="p-4 text-center text-slate-400">
+              <i class="fa-solid ${isExpanded ? 'fa-chevron-down text-indigo-600' : 'fa-chevron-right'}"></i>
+            </td>
+            <td class="p-4 font-mono text-xs text-slate-400">${c.code}</td>
+            <td class="p-4 font-semibold text-slate-800">${c.nom}</td>
+            <td class="p-4 text-xs text-slate-500">${c.epci}</td>
+            <td class="p-4 text-center font-bold text-indigo-600">${c.count}</td>
+            <td class="p-4 text-right text-slate-600">${c.population.toLocaleString('fr-FR')} hab.</td>
+            <td class="p-4 text-right font-medium text-slate-700">${c.montantTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+            <td class="p-4 text-right font-bold text-emerald-600 bg-emerald-50/50 rounded-lg">${c.epci === "(Commune hors EPCI)" ? 'N/A' : c.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €/hab.'}</td>
+          </tr>
+        `;
+
+        if (isExpanded) {
+          html += `
+            <tr class="bg-indigo-50/40">
+              <td colspan="8" class="p-4">
+                <div class="bg-white rounded-xl p-4 border border-indigo-100 shadow-sm">
+                  <h4 class="font-bold text-xs uppercase tracking-wider text-indigo-900 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-open text-indigo-600"></i>
+                    Dossiers enregistrés pour ${c.nom} (${c.dossiers.length})
+                  </h4>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                      <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] border-b border-slate-100">
+                        <tr>
+                          <th class="p-2">Année</th>
+                          <th class="p-2">N° Dossier</th>
+                          <th class="p-2">Bénéficiaire</th>
+                          <th class="p-2">Projet / Démarche</th>
+                          <th class="p-2 text-right">Montant engagé (€)</th>
+                          <th class="p-2 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        ${c.dossiers.map((d, index) => `
+                          <tr>
+                            <td class="p-2 font-semibold text-slate-600"><span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${d.annee}</span></td>
+                            <td class="p-2 font-mono text-slate-500">${d.numDossier}</td>
+                            <td class="p-2 text-slate-700">${d.beneficiaire || '-'}</td>
+                            <td class="p-2 font-medium text-slate-800">${d.demarche}</td>
+                            <td class="p-2 text-right font-bold text-emerald-600">${d.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+                            <td class="p-2 text-center">
+                              <button onclick="openProjectModal('${c.code}',${index})" class="px-2.5 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg font-semibold transition flex items-center gap-1.5 mx-auto">
+                                <i class="fa-solid fa-file-text"></i> Détails
+                              </button>
+                            </td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+      });
+      tbody.innerHTML = html;
+    }
+
+    function openProjectModal(communeCode, dossierIndex) {
+      const commune = processedCommunes.find(c => c.code === communeCode);
+      if (!commune || !commune.dossiers[dossierIndex]) return;
+      const d = commune.dossiers[dossierIndex];
+
+      document.getElementById('modal-annee').innerText = d.annee;
+      document.getElementById('modal-projet').innerText = d.demarche;
+      document.getElementById('modal-commune-epci').innerText = `${commune.nom} (${commune.code}) — ${commune.epci}`;
+      document.getElementById('modal-num-dossier').innerText = `${d.numDossier} | ${d.beneficiaire || 'Bénéficiaire non renseigné'}`;
+      document.getElementById('modal-montant').innerText = d.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+      document.getElementById('modal-resume-projet').innerText = d.resume || "Aucune description détaillée fournie pour ce projet.";
+
+      document.getElementById('project-modal').classList.remove('hidden');
+    }
+
+    function closeProjectModal() {
+      document.getElementById('project-modal').classList.add('hidden');
+    }
+
+    function renderCharts() {
+      const validEPCI = processedEPCI.filter(e => e.epci !== "(Commune hors EPCI)");
+      const sortedEPCI = [...validEPCI].sort((a, b) => b.ratio - a.ratio);
+      
+      const labels = sortedEPCI.map(e => e.epci);
+      const ratios = sortedEPCI.map(e => e.ratio);
+
+      const allEPCI = [...processedEPCI].sort((a, b) => b.montantTotal - a.montantTotal);
+      const labelsAll = allEPCI.map(e => e.epci);
+      const m2023 = allEPCI.map(e => e.m2023);
+      const m2024 = allEPCI.map(e => e.m2024);
+      const m2025 = allEPCI.map(e => e.m2025);
+      const montants = allEPCI.map(e => e.montantTotal);
+
+      if (ratioChartInstance) ratioChartInstance.destroy();
+      ratioChartInstance = new Chart(document.getElementById('ratioChart'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: '€ / hab.', data: ratios, backgroundColor: '#10b981', borderRadius: 6 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      if (yearsChartInstance) yearsChartInstance.destroy();
+      yearsChartInstance = new Chart(document.getElementById('yearsChart'), {
+        type: 'bar',
+        data: {
+          labels: labelsAll,
+          datasets: [
+            { label: '2023', data: m2023, backgroundColor: '#f59e0b' },
+            { label: '2024', data: m2024, backgroundColor: '#3b82f6' },
+            { label: '2025', data: m2025, backgroundColor: '#10b981' }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+      });
+
+      if (epciPieChartInstance) epciPieChartInstance.destroy();
+      epciPieChartInstance = new Chart(document.getElementById('epciPieChart'), {
+        type: 'doughnut',
+        data: {
+          labels: labelsAll,
+          datasets: [{ data: montants, backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e', '#6366f1', '#84cc16'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function initMap() {
+      map = L.map('map').setView([48.2020, -2.9326], 8);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      epciLayerGroup.addTo(map);
+      markersGroup.addTo(map);
+    }
+
+    function renderMapPoints(communesList) {
+      markersGroup.clearLayers();
+
+      communesList.forEach(com => {
+        if (!com.coords || com.coords.length !== 2) return;
+        
+        const has2025 = com.dossiers.some(d => String(d.annee) === '2025');
+        const has2024 = com.dossiers.some(d => String(d.annee) === '2024');
+        const color = has2025 ? '#10b981' : (has2024 ? '#3b82f6' : '#f59e0b');
+
+        const marker = L.circleMarker(com.coords, {
+          radius: Math.min(Math.max(Math.sqrt(com.montantTotal) / 15, 6), 20),
+          fillColor: color,
+          color: '#ffffff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        });
+
+        const dossiersByYear = {};
+        com.dossiers.forEach(d => {
+          if (!dossiersByYear[d.annee]) dossiersByYear[d.annee] = [];
+          dossiersByYear[d.annee].push(d);
+        });
+
+        let dossiersHtml = '';
+        Object.keys(dossiersByYear).sort().reverse().forEach(annee => {
+          const badgeColor = annee === '2025' ? 'bg-emerald-100 text-emerald-800' : (annee === '2024' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800');
+          dossiersHtml += `<div class="mt-2 font-semibold"><span class="px-1.5 py-0.5 rounded text-[10px] ${badgeColor}">${annee}</span></div>`;
+          dossiersByYear[annee].forEach(d => {
+            dossiersHtml += `<div class="text-[11px] text-slate-600 pl-2 border-l-2 border-slate-200 my-1">▪ ${d.demarche} (${d.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })})</div>`;
+          });
+        });
+
+        marker.bindPopup(`
+          <div class="p-1 max-w-xs text-xs">
+            <strong class="text-sm text-slate-900">${com.nom}</strong><br>
+            <span class="text-[11px] text-slate-500">Total : <strong>${com.montantTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</strong></span>
+            <div class="mt-1 max-h-40 overflow-y-auto pr-1">
+              ${dossiersHtml}
+            </div>
+          </div>
+        `);
+        markersGroup.addLayer(marker);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -9,9 +9,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- MapLibre GL CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -107,7 +107,6 @@
     <!-- ÉCRAN DE CHARGEMENT AVEC DANSEUR BRETON ET BARRE DE PROGRESSION -->
     <div id="loading-banner" class="mb-6 p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col items-center justify-center space-y-4">
       <div class="flex items-center gap-4">
-        <!-- GIF animé danseur breton avec son petit chapeau rond -->
         <img src="https://media.giphy.com/media/3o7TKSjRrfIPjeiOkM/giphy.gif" alt="Danseur breton" class="w-16 h-16 object-contain rounded-full bg-slate-50 p-1 border border-slate-100 shadow-inner">
         <div>
           <h3 class="text-sm font-bold text-slate-900">Chargement des données bretonnes en cours...</h3>
@@ -241,7 +240,7 @@
       <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-sm">
         <div class="flex items-center gap-2 text-emerald-700 font-semibold">
           <i class="fa-solid fa-map-pin text-emerald-600"></i>
-          <span>Cartographie — Contours EPCI et puces positionnées sur chaque commune bénéficiaire</span>
+          <span>Cartographie MapLibre — Contours EPCI et puces des communes bénéficiaires</span>
         </div>
         <div class="flex items-center gap-4 text-slate-600 font-medium">
           <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded border-2 border-purple-600 inline-block"></span> Contours EPCI</div>
@@ -313,8 +312,6 @@
     let epciPieChartInstance = null;
 
     let map = null;
-    let markersGroup = L.layerGroup();
-    let epciLayerGroup = L.layerGroup();
 
     const yearSelect = document.getElementById('year-select');
     const deptSelect = document.getElementById('dept-select');
@@ -327,7 +324,6 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       initMap();
-      await loadEpciGeoJson();
       await fetchAndProcessJSON();
     });
 
@@ -354,33 +350,60 @@
         btnStats.classList.add('text-slate-300');
         viewMap.classList.remove('hidden');
         viewStats.classList.add('hidden');
-        setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+        setTimeout(() => { if (map) map.resize(); }, 100);
       }
     }
 
-    async function loadEpciGeoJson() {
-      try {
-        const res = await fetch('epci_simple.geojson');
-        if (res.ok) {
-          const geojsonData = await res.json();
-          L.geoJSON(geojsonData, {
-            style: {
-              color: '#8b5cf6',
-              weight: 1.5,
-              opacity: 0.6,
-              fillColor: '#8b5cf6',
-              fillOpacity: 0.05
-            },
-            onEachFeature: (feature, layer) => {
-              if (feature.properties && feature.properties.nom) {
-                layer.bindPopup(`<div class="text-xs font-bold text-slate-800">EPCI : ${feature.properties.nom}</div>`);
+    function initMap() {
+      map = new maplibregl.Map({
+        container: 'map',
+        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+        center: [-2.9326, 48.2020], // [lng, lat]
+        zoom: 8
+      });
+
+      map.on('load', async () => {
+        // Chargement de la couche EPCI GeoJSON
+        try {
+          const res = await fetch('epci_simple.geojson');
+          if (res.ok) {
+            const epciData = await res.json();
+            map.addSource('epci-source', { type: 'geojson', data: epciData });
+            
+            map.addLayer({
+              id: 'epci-fill',
+              type: 'fill',
+              source: 'epci-source',
+              paint: {
+                'fill-color': '#8b5cf6',
+                'fill-opacity': 0.05
               }
-            }
-          }).addTo(epciLayerGroup);
+            });
+
+            map.addLayer({
+              id: 'epci-border',
+              type: 'line',
+              source: 'epci-source',
+              paint: {
+                'line-color': '#8b5cf6',
+                'line-width': 1.5,
+                'line-opacity': 0.6
+              }
+            });
+
+            // Pop-up au clic sur un EPCI
+            map.on('click', 'epci-fill', (e) => {
+              const props = e.features[0].properties;
+              new maplibregl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(`<div class="text-xs font-bold text-slate-800">EPCI : ${props.nom || 'Inconnu'}</div>`)
+                .addTo(map);
+            });
+          }
+        } catch (err) {
+          console.log("epci_simple.geojson optionnel non chargé.");
         }
-      } catch (e) {
-        console.log("Fichier epci_simple.geojson optionnel non trouvé.");
-      }
+      });
     }
 
     async function fetchAndProcessJSON() {
@@ -389,7 +412,6 @@
         if (!res.ok) throw new Error("Fichier JSON non trouvé");
         rawJSONData = await res.json();
 
-        // Masquer l'écran de chargement et afficher l'application
         document.getElementById('loading-banner').classList.add('hidden');
         document.getElementById('view-stats').classList.remove('hidden');
 
@@ -426,11 +448,10 @@
         const epciName = item.libelle_epci || item.epci || "(Commune hors EPCI)";
         const pop = Number(item.population) || 0;
         
-        // Coordonnées GPS directes depuis le JSON si présentes
-        let lat = Number(item.latitude || item.lat);
-        let lon = Number(item.longitude || item.lon || item.lng);
-        // Coordonnées par défaut approximatives en Bretagne si absentes
-        if (!lat || !lon) {
+        let lat = Number(item.latitude);
+        let lon = Number(item.longitude);
+        
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) {
           lat = 48.20 + (Math.random() * 0.5 - 0.25);
           lon = -2.93 + (Math.random() * 0.8 - 0.4);
         }
@@ -444,7 +465,7 @@
             montantTotal: 0,
             population: pop,
             dossiers: [],
-            coords: [lat, lon]
+            coords: [lon, lat] // MapLibre utilise [longitude, latitude]
           };
           if (pop > 0 && epciName !== "(Commune hors EPCI)") {
             totalPopGlobal += pop;
@@ -709,34 +730,13 @@
       });
     }
 
-    function initMap() {
-      map = L.map('map').setView([48.2020, -2.9326], 8);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      epciLayerGroup.addTo(map);
-      markersGroup.addTo(map);
-    }
-
     function renderMapPoints(communesList) {
-      markersGroup.clearLayers();
-
-      communesList.forEach(com => {
-        if (!com.coords || com.coords.length !== 2) return;
+      const features = communesList.map(com => {
+        if (!com.coords || com.coords.length !== 2) return null;
         
         const has2025 = com.dossiers.some(d => String(d.annee) === '2025');
         const has2024 = com.dossiers.some(d => String(d.annee) === '2024');
         const color = has2025 ? '#10b981' : (has2024 ? '#3b82f6' : '#f59e0b');
-
-        const marker = L.circleMarker(com.coords, {
-          radius: Math.min(Math.max(Math.sqrt(com.montantTotal) / 15, 6), 20),
-          fillColor: color,
-          color: '#ffffff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.8
-        });
 
         const dossiersByYear = {};
         com.dossiers.forEach(d => {
@@ -753,7 +753,7 @@
           });
         });
 
-        marker.bindPopup(`
+        const popupContent = `
           <div class="p-1 max-w-xs text-xs">
             <strong class="text-sm text-slate-900">${com.nom}</strong><br>
             <span class="text-[11px] text-slate-500">Total : <strong>${com.montantTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</strong></span>
@@ -761,8 +761,77 @@
               ${dossiersHtml}
             </div>
           </div>
-        `);
-        markersGroup.addLayer(marker);
+        `;
+
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: com.coords // [lng, lat]
+          },
+          properties: {
+            nom: com.nom,
+            montant: com.montantTotal,
+            color: color,
+            popup: popupContent
+          }
+        };
+      }).filter(Boolean);
+
+      const geojson = {
+        type: 'FeatureCollection',
+        features: features
+      };
+
+      if (map.getSource('communes-source')) {
+        map.getSource('communes-source').setData(geojson);
+      } else {
+        map.on('load', () => {
+          addCommunesLayer(geojson);
+        });
+        if (map.isStyleLoaded()) {
+          addCommunesLayer(geojson);
+        }
+      }
+    }
+
+    function addCommunesLayer(geojson) {
+      if (map.getSource('communes-source')) return;
+
+      map.addSource('communes-source', {
+        type: 'geojson',
+        data: geojson
+      });
+
+      map.addLayer({
+        id: 'communes-points',
+        type: 'circle',
+        source: 'communes-source',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['sqrt', ['get', 'montant']], 10, 6, 100, 18],
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      // Gestion des clics sur les puces
+      map.on('click', 'communes-points', (e) => {
+        const coords = e.features[0].geometry.coordinates.slice();
+        const popupHtml = e.features[0].properties.popup;
+
+        new maplibregl.Popup()
+          .setLngLat(coords)
+          .setHTML(popupHtml)
+          .addTo(map);
+      });
+
+      map.on('mouseenter', 'communes-points', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+
+      map.on('mouseleave', 'communes-points', () => {
+        map.getCanvas().style.cursor = '';
       });
     }
   </script>

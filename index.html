@@ -33,61 +33,69 @@
 
   <div class="max-w-7xl mx-auto px-4 py-8 w-full">
     
-    <!-- EN-TÊTE PRINCIPAL -->
-    <header class="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 class="text-2xl font-bold text-slate-900">Observatoire Fonds Vert — Région Bretagne</h1>
-          <p class="text-xs text-slate-500 mt-0.5">Analyse par Département, EPCI, Communes et Cartographie (2023-2025)</p>
-        </div>
+    <!-- EN-TÊTE PRINCIPAL AVEC BANDEAU IMAGE BRETAGNE -->
+    <header class="mb-8 rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+      <!-- Image de fond (Côtes maritimes & reliefs bretons) -->
+      <div class="absolute inset-0 bg-cover bg-center z-0" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80');"></div>
+      <!-- Filtre sombre par-dessus pour la lisibilité du texte -->
+      <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-10"></div>
 
-        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-          <!-- NAVIGATION ONGLETS -->
-          <div class="bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center gap-1">
-            <button id="tab-stats-btn" onclick="switchTab('stats')" class="tab-btn active px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2">
-              <i class="fa-solid fa-chart-pie"></i>
-              Analyse Statistique
-            </button>
-            <button id="tab-map-btn" onclick="switchTab('map')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-2">
-              <i class="fa-solid fa-map-location-dot"></i>
-              Cartographie
-            </button>
+      <!-- Contenu de l'en-tête -->
+      <div class="relative z-20 p-6 md:p-8 space-y-6 text-white">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Observatoire Fonds Vert — Région Bretagne</h1>
+            <p class="text-xs md:text-sm text-slate-200 mt-1">Analyse par Département, EPCI, Communes et Cartographie (2023-2025)</p>
           </div>
 
-          <!-- FILTRE DÉPARTEMENT -->
-          <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
-            <label for="dept-select" class="text-xs font-semibold text-slate-600 pl-1">Dpt :</label>
-            <select id="dept-select" class="bg-white text-sm font-semibold text-slate-800 py-1.5 px-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="ALL" selected>Toute la Bretagne</option>
-              <option value="22">22 - Côtes-d'Armor</option>
-              <option value="29">29 - Finistère</option>
-              <option value="35">35 - Ille-et-Vilaine</option>
-              <option value="56">56 - Morbihan</option>
-            </select>
-          </div>
+          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+            <!-- NAVIGATION ONGLETS -->
+            <div class="bg-slate-900/70 backdrop-blur p-1 rounded-xl border border-white/20 flex items-center gap-1">
+              <button id="tab-stats-btn" onclick="switchTab('stats')" class="tab-btn active px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie"></i>
+                Analyse Statistique
+              </button>
+              <button id="tab-map-btn" onclick="switchTab('map')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-map-location-dot"></i>
+                Cartographie
+              </button>
+            </div>
 
-          <!-- FILTRE EXERCICE -->
-          <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
-            <label for="year-select" class="text-xs font-semibold text-slate-600 pl-1">Exercice :</label>
-            <select id="year-select" class="bg-white text-sm font-semibold text-slate-800 py-1.5 px-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="ALL" selected>Cumul (2023-2025)</option>
-              <option value="2025">Année 2025</option>
-              <option value="2024">Année 2024</option>
-              <option value="2023">Année 2023</option>
-            </select>
+            <!-- FILTRE DÉPARTEMENT -->
+            <div class="flex items-center gap-2 bg-slate-900/70 backdrop-blur p-2 rounded-xl border border-white/20">
+              <label for="dept-select" class="text-xs font-semibold text-slate-200 pl-1">Dpt :</label>
+              <select id="dept-select" class="bg-slate-800 text-white text-sm font-semibold py-1.5 px-3 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                <option value="ALL" selected>Toute la Bretagne</option>
+                <option value="22">22 - Côtes-d'Armor</option>
+                <option value="29">29 - Finistère</option>
+                <option value="35">35 - Ille-et-Vilaine</option>
+                <option value="56">56 - Morbihan</option>
+              </select>
+            </div>
+
+            <!-- FILTRE EXERCICE -->
+            <div class="flex items-center gap-2 bg-slate-900/70 backdrop-blur p-2 rounded-xl border border-white/20">
+              <label for="year-select" class="text-xs font-semibold text-slate-200 pl-1">Exercice :</label>
+              <select id="year-select" class="bg-slate-800 text-white text-sm font-semibold py-1.5 px-3 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                <option value="ALL" selected>Cumul (2023-2025)</option>
+                <option value="2025">Année 2025</option>
+                <option value="2024">Année 2024</option>
+                <option value="2023">Année 2023</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- BANDEAU DES SOURCES -->
-      <div class="pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs text-slate-500">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-database text-emerald-600"></i>
-          <span>Source officielle : <strong>data.gouv.fr</strong> (Ministère de la Transition Écologique)</span>
+        <!-- BANDEAU DES SOURCES -->
+        <div class="pt-4 border-t border-white/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs text-slate-300">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-database text-emerald-400"></i>
+            <span>Source officielle : <strong>data.gouv.fr</strong> (Ministère de la Transition Écologique)</span>
+          </div>
+          <a href="https://www.data.gouv.fr/fr/datasets/fonds-vert-liste-des-projets-subventionnes/" target="_blank" rel="noopener noreferrer" class="text-emerald-300 hover:underline font-semibold flex items-center gap-1">
+            Consulter le jeu de données <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+          </a>
         </div>
-        <a href="https://www.data.gouv.fr/fr/datasets/fonds-vert-liste-des-projets-subventionnes/" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline font-semibold flex items-center gap-1">
-          Consulter le jeu de données <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-        </a>
       </div>
     </header>
 
@@ -301,7 +309,6 @@
     const yearSelect = document.getElementById('year-select');
     const deptSelect = document.getElementById('dept-select');
 
-    // Formatage des noms de communes : minuscule, première lettre majuscule
     function formatNomCommune(nom) {
       if (!nom) return "";
       let lower = nom.toLowerCase();
@@ -316,7 +323,6 @@
     yearSelect.addEventListener('change', () => analyzeAndRenderData());
     deptSelect.addEventListener('change', () => analyzeAndRenderData());
 
-    // --- NAVIGATION ONGLETS ---
     function switchTab(tab) {
       const btnStats = document.getElementById('tab-stats-btn');
       const btnMap = document.getElementById('tab-map-btn');
@@ -325,23 +331,22 @@
 
       if (tab === 'stats') {
         btnStats.classList.add('active');
-        btnStats.classList.remove('text-slate-600');
+        btnStats.classList.remove('text-slate-300');
         btnMap.classList.remove('active');
-        btnMap.classList.add('text-slate-600');
+        btnMap.classList.add('text-slate-300');
         viewStats.classList.remove('hidden');
         viewMap.classList.add('hidden');
       } else {
         btnMap.classList.add('active');
-        btnMap.classList.remove('text-slate-600');
+        btnMap.classList.remove('text-slate-300');
         btnStats.classList.remove('active');
-        btnStats.classList.add('text-slate-600');
+        btnStats.classList.add('text-slate-300');
         viewMap.classList.remove('hidden');
         viewStats.classList.add('hidden');
         setTimeout(() => { if (map) map.invalidateSize(); }, 100);
       }
     }
 
-    // --- API GOUV (POPULATION, EPCI & COORDS) ---
     async function getGeoDetails(codeInsee) {
       if (cacheGeoMap[codeInsee]) return cacheGeoMap[codeInsee];
       try {
@@ -360,7 +365,6 @@
       }
     }
 
-    // --- CHARGEMENT DU JSON AVEC COMPTE À REBOURS ---
     async function fetchAndProcessJSON() {
       let seconds = 0;
       const timer = setInterval(() => {
@@ -369,7 +373,8 @@
       }, 1000);
 
       try {
-        const res = await fetch('fonds_verts_bretagne.json');
+        // CORRECTION DU NOM DU FICHIER JSON ICI : fonds_vert_bretagne.json
+        const res = await fetch('fonds_vert_bretagne.json');
         if (!res.ok) throw new Error("Fichier JSON non trouvé");
         rawJSONData = await res.json();
 
@@ -386,11 +391,10 @@
         clearInterval(timer);
         statusBanner.className = "mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-3";
         statusIcon.className = "fa-solid fa-circle-exclamation text-red-600 text-lg";
-        statusText.innerHTML = "Erreur : Le fichier <strong>fonds_verts_bretagne.json</strong> est introuvable.";
+        statusText.innerHTML = "Erreur : Le fichier <strong>fonds_vert_bretagne.json</strong> est introuvable sur le dépôt GitHub.";
       }
     }
 
-    // --- AGREGATION & CALCULS ---
     function analyzeAndRenderData() {
       const selectedYear = yearSelect.value;
       const selectedDept = deptSelect.value;
@@ -488,7 +492,6 @@
       renderMapPoints(filteredRecords);
     }
 
-    // --- TABLEAUX & TRIS ---
     function sortTable(type, column) {
       let config = type === 'epci' ? epciSort : communesSort;
       if (config.col === column) {
@@ -511,7 +514,7 @@
         const el = document.getElementById(`sort-${type}-${c}`);
         if (el) {
           el.innerHTML = (config.col === c) ? (config.asc ? "▲" : "▼") : "";
-          if (config.col === c) el.className = "text-emerald-600 font-bold ml-1";
+          if (config.col === c) el.className = "text-emerald-400 font-bold ml-1";
         }
       });
     }
@@ -649,16 +652,13 @@
       document.getElementById('project-modal').classList.add('hidden');
     }
 
-    // --- GRAPHIQUES CHART.JS (EXCLUSION COMMUNES HORS EPCI DU RATIO) ---
     function renderCharts() {
-      // Filtrer pour exclure les communes hors EPCI du graphe ratio
       const validEPCI = processedEPCI.filter(e => e.epci !== "(Commune hors EPCI)");
       const sortedEPCI = [...validEPCI].sort((a, b) => b.ratio - a.ratio);
       
       const labels = sortedEPCI.map(e => e.epci);
       const ratios = sortedEPCI.map(e => e.ratio);
 
-      // Tous les EPCI pour les autres graphiques
       const allEPCI = [...processedEPCI].sort((a, b) => b.montantTotal - a.montantTotal);
       const labelsAll = allEPCI.map(e => e.epci);
       const m2023 = allEPCI.map(e => e.m2023);
@@ -666,7 +666,6 @@
       const m2025 = allEPCI.map(e => e.m2025);
       const montants = allEPCI.map(e => e.montantTotal);
 
-      // Ratio Chart
       if (ratioChartInstance) ratioChartInstance.destroy();
       ratioChartInstance = new Chart(document.getElementById('ratioChart'), {
         type: 'bar',
@@ -677,7 +676,6 @@
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
 
-      // Years Chart
       if (yearsChartInstance) yearsChartInstance.destroy();
       yearsChartInstance = new Chart(document.getElementById('yearsChart'), {
         type: 'bar',
@@ -692,7 +690,6 @@
         options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
       });
 
-      // Pie Chart
       if (epciPieChartInstance) epciPieChartInstance.destroy();
       epciPieChartInstance = new Chart(document.getElementById('epciPieChart'), {
         type: 'doughnut',
@@ -704,7 +701,6 @@
       });
     }
 
-    // --- CARTE LEAFLET ---
     function initMap() {
       map = L.map('map').setView([48.2020, -2.9326], 8);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -738,7 +734,6 @@
       });
 
       Object.values(communePointMap).forEach(com => {
-        // Détermination couleur principale de la puce selon la présence des années
         const has2025 = com.dossiers.some(d => String(d.annee) === '2025');
         const has2024 = com.dossiers.some(d => String(d.annee) === '2024');
         const color = has2025 ? '#10b981' : (has2024 ? '#3b82f6' : '#f59e0b');
@@ -752,7 +747,6 @@
           fillOpacity: 0.8
         });
 
-        // Groupement des projets par année pour le popup carto
         const dossiersByYear = {};
         com.dossiers.forEach(d => {
           if (!dossiersByYear[d.annee]) dossiersByYear[d.annee] = [];

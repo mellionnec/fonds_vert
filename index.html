@@ -1,501 +1,329 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-fr-scheme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Observatoire Fonds Vert — Région Bretagne</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        #map { height: calc(100vh - 220px); min-height: 520px; width: 100%; }
-        th.sortable { cursor: pointer; user-select: none; }
-        th.sortable:hover { background-color: #f1f5f9; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observatoire du Fonds vert — Bretagne</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.12.1/dist/dsfr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.12.1/dist/utility/icons/icons.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+#map{height:560px;width:100%}
+.kpi{border:1px solid var(--border-default-grey);padding:1rem 1.25rem;height:100%}
+.kpi p{margin:0}
+.chart-box{position:relative;height:340px}
+.fr-table th .fr-btn{font-weight:700;padding:.25rem .5rem}
+.legend span{display:inline-flex;align-items:center;gap:.4rem;margin-right:1.25rem}
+.legend i{width:.9rem;height:.9rem;border-radius:50%;display:inline-block}
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between font-sans">
+<body>
 
-    <!-- HEADER -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                    <i class="fa-solid fa-leaf"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">Fonds Vert — Région Bretagne</h1>
-                    <p class="text-xs text-slate-500">Subventions, Intercommunalités (EPCI) & Ratios démographiques</p>
-                </div>
-            </div>
+<header role="banner" class="fr-header">
+  <div class="fr-header__body"><div class="fr-container"><div class="fr-header__body-row">
+    <div class="fr-header__brand">
+      <div class="fr-header__brand-top"><div class="fr-header__logo"><p class="fr-logo">République<br>Française</p></div></div>
+      <div class="fr-header__service">
+        <p class="fr-header__service-title">Observatoire du Fonds vert en Bretagne</p>
+        <p class="fr-header__service-tagline">Projets financés, thématiques et montants par habitant</p>
+      </div>
+    </div>
+  </div></div></div>
+</header>
 
-            <!-- ONGLETS DE NAVIGATION -->
-            <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                <button onclick="switchTab('analysis')" id="btn-tab-analysis" class="px-5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-slate-900 text-white shadow-sm">
-                    <i class="fa-solid fa-chart-pie"></i> Analyse & Tableaux
-                </button>
-                <button onclick="switchTab('carto')" id="btn-tab-carto" class="px-5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900">
-                    <i class="fa-solid fa-map-location-dot"></i> Cartographie
-                </button>
-            </div>
-        </div>
-    </header>
+<main class="fr-container fr-my-4w" id="contenu">
 
-    <!-- BARRE DE FILTRAGE -->
-    <div class="bg-white border-b border-slate-200 py-3">
-        <div class="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                    <span class="font-semibold text-slate-500"><i class="fa-solid fa-calendar mr-1"></i> Année :</span>
-                    <select id="filter-year" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer">
-                        <option value="ALL">Toutes les années</option>
-                    </select>
-                </div>
+  <div class="fr-alert fr-alert--warning fr-alert--sm fr-mb-3w" id="alert-pop" hidden>
+    <p>Les populations n’ont pas pu être chargées depuis geo.api.gouv.fr : les ratios par habitant sont indisponibles. Rechargez la page ou vérifiez votre connexion.</p>
+  </div>
+  <div class="fr-alert fr-alert--error fr-alert--sm fr-mb-3w" id="alert-data" hidden>
+    <p>Le fichier fonds_vert_bretagne.json est introuvable. Placez-le dans le même dossier que cette page (et ouvrez la page via GitHub Pages ou un serveur local, pas en file://).</p>
+  </div>
 
-                <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                    <span class="font-semibold text-slate-500"><i class="fa-solid fa-map mr-1"></i> Département :</span>
-                    <select id="filter-dept" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer">
-                        <option value="ALL">Tous les départements</option>
-                    </select>
-                </div>
-            </div>
+  <!-- FILTRES -->
+  <form class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom fr-mb-2w" onsubmit="return false" role="search" aria-label="Filtres">
+    <div class="fr-col-12 fr-col-sm-6 fr-col-lg-2"><div class="fr-select-group">
+      <label class="fr-label" for="f-annee">Année</label>
+      <select class="fr-select" id="f-annee"><option value="ALL">Toutes les années</option></select></div></div>
+    <div class="fr-col-12 fr-col-sm-6 fr-col-lg-3"><div class="fr-select-group">
+      <label class="fr-label" for="f-dep">Département</label>
+      <select class="fr-select" id="f-dep"><option value="ALL">Tous les départements</option></select></div></div>
+    <div class="fr-col-12 fr-col-sm-6 fr-col-lg-3"><div class="fr-select-group">
+      <label class="fr-label" for="f-theme">Thématique</label>
+      <select class="fr-select" id="f-theme"><option value="ALL">Toutes les thématiques</option></select></div></div>
+    <div class="fr-col-12 fr-col-sm-6 fr-col-lg-3"><div class="fr-input-group">
+      <label class="fr-label" for="f-q">Recherche</label>
+      <input class="fr-input" type="search" id="f-q" placeholder="Projet, commune, EPCI, bénéficiaire"></div></div>
+    <div class="fr-col-12 fr-col-lg-1"><button type="button" class="fr-btn fr-btn--secondary fr-btn--sm" id="reset">Réinitialiser</button></div>
+  </form>
 
-            <div class="w-full lg:w-72 relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                <input type="text" id="search-input" placeholder="Rechercher (projet, commune, EPCI)..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-        </div>
+  <div class="fr-tabs">
+    <ul class="fr-tabs__list" role="tablist" aria-label="Vues">
+      <li role="presentation"><button id="tabbtn-syn" class="fr-tabs__tab" tabindex="0" role="tab" aria-selected="true" aria-controls="tabpanel-syn">Synthèse</button></li>
+      <li role="presentation"><button id="tabbtn-map" class="fr-tabs__tab" tabindex="-1" role="tab" aria-selected="false" aria-controls="tabpanel-map">Carte</button></li>
+      <li role="presentation"><button id="tabbtn-prj" class="fr-tabs__tab" tabindex="-1" role="tab" aria-selected="false" aria-controls="tabpanel-prj">Projets</button></li>
+    </ul>
+
+    <!-- SYNTHÈSE -->
+    <div id="tabpanel-syn" class="fr-tabs__panel fr-tabs__panel--selected" role="tabpanel" aria-labelledby="tabbtn-syn" tabindex="0">
+      <div class="fr-grid-row fr-grid-row--gutters fr-mb-4w">
+        <div class="fr-col-12 fr-col-sm-6 fr-col-lg-3"><div class="kpi"><p class="fr-text--sm">Montant engagé</p><p class="fr-h3" id="k-montant">–</p></div></div>
+        <div class="fr-col-12 fr-col-sm-6 fr-col-lg-3"><div class="kpi"><p class="fr-text--sm">Projets financés</p><p class="fr-h3" id="k-projets">–</p></div></div>
+        <div class="fr-col-12 fr-col-sm-6 fr-col-lg-3"><div class="kpi"><p class="fr-text--sm">Communes bénéficiaires</p><p class="fr-h3" id="k-communes">–</p></div></div>
+        <div class="fr-col-12 fr-col-sm-6 fr-col-lg-3"><div class="kpi"><p class="fr-text--sm">Montant par habitant</p><p class="fr-h3" id="k-ratio">–</p><p class="fr-text--xs" id="k-pop"></p></div></div>
+      </div>
+
+      <div class="fr-grid-row fr-grid-row--gutters fr-mb-4w">
+        <div class="fr-col-12 fr-col-lg-7"><h2 class="fr-h6">Montant engagé par thématique</h2><div class="chart-box"><canvas id="c-theme" role="img" aria-label="Montant engagé par thématique"></canvas></div></div>
+        <div class="fr-col-12 fr-col-lg-5"><h2 class="fr-h6">Montant engagé par année</h2><div class="chart-box"><canvas id="c-year" role="img" aria-label="Montant engagé par année"></canvas></div></div>
+      </div>
+
+      <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
+        <div class="fr-col-12 fr-col-md-8"><h2 class="fr-h6 fr-mb-0">Montants et ratios par territoire</h2></div>
+        <div class="fr-col-12 fr-col-md-4"><div class="fr-select-group">
+          <label class="fr-label" for="f-vue">Afficher par</label>
+          <select class="fr-select" id="f-vue"><option value="dep">Département</option><option value="epci" selected>EPCI</option><option value="com">Commune</option></select></div></div>
+      </div>
+      <div class="fr-table fr-table--no-caption"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
+        <table id="t-terr"><caption>Montants et ratios par territoire</caption><thead></thead><tbody></tbody></table>
+      </div></div></div></div>
+
+      <div class="fr-callout fr-callout--sm">
+        <p class="fr-callout__text fr-text--sm">Ratio = montant engagé ÷ population totale du territoire (population Insee, via geo.api.gouv.fr). Pour un EPCI ou un département, c’est la population entière du territoire, pas seulement celle des communes aidées.</p>
+      </div>
     </div>
 
-    <!-- CONTENU -->
-    <main class="max-w-7xl mx-auto px-4 py-8 w-full flex-grow">
+    <!-- CARTE -->
+    <div id="tabpanel-map" class="fr-tabs__panel" role="tabpanel" aria-labelledby="tabbtn-map" tabindex="0">
+      <p class="fr-text--sm">Cercles proportionnels au montant engagé, colorés par année. <span id="map-miss"></span></p>
+      <p class="legend fr-text--sm" id="legend"></p>
+      <div id="map" role="img" aria-label="Carte des projets du Fonds vert"></div>
+    </div>
 
-        <!-- ==================== ONGLETS 1 : ANALYSE ==================== -->
-        <div id="tab-analysis" class="tab-content active space-y-8">
-            
-            <!-- KPIs -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Subventions</span>
-                    <div id="kpi-montant" class="text-2xl font-extrabold text-slate-900 mt-2">0 €</div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Projets Financés</span>
-                    <div id="kpi-projets" class="text-2xl font-extrabold text-blue-600 mt-2">0</div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Communes Bénéficiaires</span>
-                    <div id="kpi-communes" class="text-2xl font-extrabold text-emerald-600 mt-2">0</div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Ratio Moyen / Habitant</span>
-                    <div id="kpi-ratio" class="text-2xl font-extrabold text-purple-600 mt-2">0 €/hab.</div>
-                </div>
-            </div>
+    <!-- PROJETS -->
+    <div id="tabpanel-prj" class="fr-tabs__panel" role="tabpanel" aria-labelledby="tabbtn-prj" tabindex="0">
+      <div class="fr-grid-row fr-grid-row--middle fr-mb-2w" style="justify-content:space-between;gap:1rem">
+        <p class="fr-mb-0" id="prj-count"></p>
+        <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-download-line fr-btn--icon-left" id="export">Exporter la sélection (CSV)</button>
+      </div>
+      <div class="fr-table fr-table--no-caption"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
+        <table id="t-prj"><caption>Liste des projets</caption><thead></thead><tbody></tbody></table>
+      </div></div></div></div>
+      <button type="button" class="fr-btn fr-btn--tertiary" id="more">Afficher 100 projets de plus</button>
+    </div>
+  </div>
+</main>
 
-            <!-- GRAPHIQUES -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <details open class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                    <summary class="p-5 font-bold text-sm text-slate-800 cursor-pointer hover:bg-slate-50 transition border-b border-slate-100 flex items-center justify-between">
-                        <span><i class="fa-solid fa-chart-column text-blue-600 mr-2"></i> Ventilation par Année (€)</span>
-                        <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
-                    </summary>
-                    <div class="p-6 relative h-72"><canvas id="chartYear"></canvas></div>
-                </details>
+<footer class="fr-footer" role="contentinfo"><div class="fr-container"><div class="fr-footer__bottom">
+  <p class="fr-footer__bottom-copy">Données : fonds_vert_bretagne.json (Fonds vert, région Bretagne). Populations : population Insee via geo.api.gouv.fr. Fond de carte © contributeurs OpenStreetMap.</p>
+</div></div></footer>
 
-                <details open class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                    <summary class="p-5 font-bold text-sm text-slate-800 cursor-pointer hover:bg-slate-50 transition border-b border-slate-100 flex items-center justify-between">
-                        <span><i class="fa-solid fa-chart-bar text-purple-600 mr-2"></i> Top 10 des EPCI par Montant (€)</span>
-                        <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
-                    </summary>
-                    <div class="p-6 relative h-72"><canvas id="chartEpci"></canvas></div>
-                </details>
-            </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.12.1/dist/dsfr.module.min.js"></script>
+<script nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.12.1/dist/dsfr.nomodule.min.js"></script>
 
-            <!-- TABLEAU SYNTHÈSE EPCI / RATIO HABITANT -->
-            <details open class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                <summary class="p-5 font-bold text-sm text-slate-800 cursor-pointer hover:bg-slate-50 transition border-b border-slate-100 flex items-center justify-between">
-                    <span><i class="fa-solid fa-table-cells text-emerald-600 mr-2"></i> Synthèse par Intercommunalité (EPCI) & Ratios par Habitant</span>
-                    <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
-                </summary>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm" id="epci-table">
-                        <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] font-semibold border-b border-slate-100">
-                            <tr>
-                                <th class="p-4 sortable" onclick="sortTable(0, 'epci-table')">EPCI ↕</th>
-                                <th class="p-4 text-center sortable" onclick="sortTable(1, 'epci-table')">Dossiers ↕</th>
-                                <th class="p-4 text-right sortable" onclick="sortTable(2, 'epci-table')">Population Cumulée ↕</th>
-                                <th class="p-4 text-right sortable" onclick="sortTable(3, 'epci-table')">Montant Total (€) ↕</th>
-                                <th class="p-4 text-right sortable font-bold text-slate-900" onclick="sortTable(4, 'epci-table')">Ratio (€ / hab.) ↕</th>
-                            </tr>
-                        </thead>
-                        <tbody id="epci-tbody" class="divide-y divide-slate-100 text-slate-700">
-                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Chargement...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </details>
+<script>
+const JSON_URL = 'fonds_vert_bretagne.json';
+const GEO = 'https://geo.api.gouv.fr';
 
-            <!-- TABLEAU DÉTAILLÉ DES PROJETS -->
-            <details class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                <summary class="p-5 font-bold text-sm text-slate-800 cursor-pointer hover:bg-slate-50 transition border-b border-slate-100 flex items-center justify-between">
-                    <span><i class="fa-solid fa-list-check text-indigo-600 mr-2"></i> Liste détaillée des Projets</span>
-                    <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
-                </summary>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm" id="projects-table">
-                        <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] font-semibold border-b border-slate-100">
-                            <tr>
-                                <th class="p-4 sortable" onclick="sortTable(0, 'projects-table')">Intitulé du Projet ↕</th>
-                                <th class="p-4 sortable" onclick="sortTable(1, 'projects-table')">Année ↕</th>
-                                <th class="p-4 sortable" onclick="sortTable(2, 'projects-table')">EPCI ↕</th>
-                                <th class="p-4 sortable" onclick="sortTable(3, 'projects-table')">Commune (Pop.) ↕</th>
-                                <th class="p-4 text-right sortable" onclick="sortTable(4, 'projects-table')">Montant (€) ↕</th>
-                            </tr>
-                        </thead>
-                        <tbody id="projects-tbody" class="divide-y divide-slate-100 text-slate-700">
-                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Chargement...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </details>
+// Regroupement des « démarches » en thématiques (modifiable ici). Le premier motif qui correspond l'emporte.
+const THEMES = [
+  ['Adaptation et risques',        /trait de c|littoral|inond|incend|papi|gemapi/i],
+  ['Mobilités durables',           /covoit|cyclab|mobilit|zfe|faibles émissions/i],
+  ['Renaturation et biodiversité', /renaturation|biodiversit/i],
+  ['Recyclage foncier et friches', /recyclage|friche/i],
+  ['Rénovation énergétique',       /rénovation|luminaire|éclairage/i],
+  ['Déchets et biodéchets',        /biodéchet|tri à la source/i],
+  ['Industrie et aménagement',     /industrie|maires/i],
+  ['Ingénierie et planification',  /ingénierie|pcaet/i]
+];
+const themeOf = d => (THEMES.find(t => t[1].test(d || '')) || ['Autres'])[0];
+const YEAR_COLORS = ['#000091', '#e1000f', '#18753c', '#b34000', '#6a6af4'];
 
-        </div>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur = v => v.toLocaleString('fr-FR', {style:'currency', currency:'EUR', maximumFractionDigits:0});
+const ratioTxt = v => v == null ? 'n.d.' : v.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €/hab.';
+const nb = v => v == null ? 'n.d.' : v.toLocaleString('fr-FR');
+const cap = s => String(s || '').toLowerCase().replace(/(^|[\s'’-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
 
-        <!-- ==================== ONGLSTS 2 : CARTOGRAPHIE ==================== -->
-        <div id="tab-carto" class="tab-content space-y-4">
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-4 text-xs">
-                <div class="flex items-center gap-2 text-slate-700 font-semibold">
-                    <i class="fa-solid fa-circle-info text-emerald-600 text-sm"></i>
-                    <span>Cercles proportionnels au montant subventionné — Code couleur par année</span>
-                </div>
-                <div class="flex items-center gap-4 font-medium text-slate-600">
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#3b82f6] inline-block"></span> 2023</div>
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#f59e0b] inline-block"></span> 2024</div>
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#10b981] inline-block"></span> 2025</div>
-                </div>
-            </div>
+let data = [], filtered = [], years = [], pop = {com:{}, epci:{}, dep:{}, reg:0, ok:false}, depCode = {};
+const st = {terr:{k:'montant', d:-1}, prj:{k:'montant', d:-1}, limit:100};
+let map, layer, mapDirty = true, charts = {};
 
-            <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                <div id="map"></div>
-            </div>
-        </div>
+const getJson = u => fetch(u).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
 
-    </main>
+async function load() {
+  let raw;
+  try { raw = await getJson(JSON_URL); } catch (e) { $('#alert-data').hidden = false; return; }
+  const rows = Array.isArray(raw) ? raw : (raw.features || []).map(f => f.properties);
+  let com = [], epc = [];
+  try {
+    [com, epc] = await Promise.all([
+      getJson(GEO + '/communes?codeRegion=53&fields=code,nom,population,codeEpci,codeDepartement'),
+      getJson(GEO + '/epcis?fields=code,nom,population')
+    ]);
+    pop.ok = true;
+  } catch (e) { $('#alert-pop').hidden = false; }
+  com.forEach(c => {
+    pop.com[c.code] = c;
+    pop.dep[c.codeDepartement] = (pop.dep[c.codeDepartement] || 0) + (c.population || 0);
+    pop.reg += c.population || 0;
+  });
+  epc.forEach(e => pop.epci[e.code] = e);
 
-    <!-- FOOTER -->
-    <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
-        <p>Observatoire Fonds Vert Bretagne — Rattaché via l'API Officielle IGN / geo.api.gouv.fr</p>
-    </footer>
+  data = rows.map((r, i) => {
+    const c = pop.com[r.code_commune], ce = c && c.codeEpci, e = ce && pop.epci[ce];
+    depCode[r.nom_departement] = r.code_departement;
+    return {
+      i, annee: String(r.annee), dep: r.nom_departement, depCode: r.code_departement,
+      commune: c ? c.nom : cap(r.nom_commune), codeCom: r.code_commune, comPop: c ? c.population : null,
+      epciKey: ce || 'n:' + (r.epci || ''), epciNom: e ? e.nom : (r.epci || 'Non renseigné'), epciPop: e ? e.population : null,
+      demarche: r.demarche, theme: themeOf(r.demarche), nom: r.nom_du_projet, benef: r.beneficiaire,
+      montant: Number(r.montant_engage) || 0, lat: r.latitude, lng: r.longitude
+    };
+  });
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  years = [...new Set(data.map(d => d.annee))].sort();
+  fill('#f-annee', years, y => y);
+  fill('#f-dep', [...new Set(data.map(d => d.dep))].sort((a, b) => a.localeCompare(b, 'fr')), d => d);
+  fill('#f-theme', [...new Set(data.map(d => d.theme))].sort((a, b) => a.localeCompare(b, 'fr')), t => t);
+  $('#legend').innerHTML = years.map((y, i) => `<span><i style="background:${YEAR_COLORS[i % YEAR_COLORS.length]}"></i>${y}</span>`).join('');
+  initMap();
+  render();
+}
+const fill = (sel, vals, label) => vals.forEach(v => $(sel).insertAdjacentHTML('beforeend', `<option value="${esc(v)}">${esc(label(v))}</option>`));
+const yColor = y => YEAR_COLORS[years.indexOf(y) % YEAR_COLORS.length];
 
-    <script>
-        const jsonUrl = 'fonds_vert_bretagne.json'; 
+function render() {
+  const y = $('#f-annee').value, d = $('#f-dep').value, t = $('#f-theme').value, q = $('#f-q').value.trim().toLowerCase();
+  filtered = data.filter(r =>
+    (y === 'ALL' || r.annee === y) && (d === 'ALL' || r.dep === d) && (t === 'ALL' || r.theme === t) &&
+    (!q || [r.nom, r.commune, r.epciNom, r.benef].some(s => String(s || '').toLowerCase().includes(q))));
+  st.limit = 100;
+  kpis(); drawCharts(); drawTerr(); drawPrj();
+  if ($('#map').offsetWidth) drawMap(); else mapDirty = true;
+}
 
-        let allData = [];
-        let map, markersLayer;
-        let chartYearInstance = null, chartEpciInstance = null;
+const periPop = () => { const d = $('#f-dep').value; return pop.ok ? (d === 'ALL' ? pop.reg : pop.dep[depCode[d]]) : null; };
 
-        const yearColors = {
-            '2023': '#3b82f6',
-            '2024': '#f59e0b',
-            '2025': '#10b981',
-            'default': '#8b5cf6'
-        };
+function kpis() {
+  const total = filtered.reduce((a, r) => a + r.montant, 0), pp = periPop();
+  $('#k-montant').textContent = eur(total);
+  $('#k-projets').textContent = nb(filtered.length);
+  $('#k-communes').textContent = nb(new Set(filtered.map(r => r.codeCom)).size);
+  $('#k-ratio').textContent = pp ? ratioTxt(total / pp) : 'n.d.';
+  $('#k-pop').textContent = pp ? 'Population de référence : ' + nb(pp) + ' hab.' : '';
+}
 
-        function getColorForYear(year) {
-            return yearColors[String(year)] || yearColors['default'];
-        }
+function drawCharts() {
+  Chart.defaults.font.family = 'Marianne, Arial, sans-serif';
+  const pp = periPop(), byT = {}, byY = {};
+  filtered.forEach(r => { byT[r.theme] = (byT[r.theme] || 0) + r.montant; byY[r.annee] = (byY[r.annee] || 0) + r.montant; });
+  const T = Object.entries(byT).sort((a, b) => b[1] - a[1]), Y = Object.keys(byY).sort();
+  const tick = v => (v / 1e6).toLocaleString('fr-FR') + ' M€';
+  const mk = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($('#' + id), cfg); };
+  const base = {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}};
+  mk('c-theme', {type:'bar', data:{labels:T.map(x => x[0]), datasets:[{data:T.map(x => x[1]), backgroundColor:'#000091'}]},
+    options:{...base, indexAxis:'y', scales:{x:{ticks:{callback:tick}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c => eur(c.raw), afterLabel:c => pp ? ratioTxt(c.raw / pp) : ''}}}}});
+  mk('c-year', {type:'bar', data:{labels:Y, datasets:[{data:Y.map(k => byY[k]), backgroundColor:Y.map(yColor)}]},
+    options:{...base, scales:{y:{ticks:{callback:tick}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c => eur(c.raw), afterLabel:c => pp ? ratioTxt(c.raw / pp) : ''}}}}});
+}
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('header button').forEach(el => {
-                el.classList.remove('bg-slate-900', 'text-white', 'shadow-sm');
-                el.classList.add('text-slate-600');
-            });
+// ----- Tableaux triables -----
+function table(sel, key, cols, rows, limit) {
+  const s = st[key], el = $(sel);
+  const sorted = [...rows].sort((a, b) => {
+    const x = a[s.k], y = b[s.k];
+    const c = (typeof x === 'string' || typeof y === 'string') ? String(x ?? '').localeCompare(String(y ?? ''), 'fr') : (x ?? -1) - (y ?? -1);
+    return s.d * c;
+  });
+  el.querySelector('thead').innerHTML = '<tr>' + cols.map(c =>
+    `<th scope="col" aria-sort="${s.k === c.k ? (s.d > 0 ? 'ascending' : 'descending') : 'none'}"${c.r ? ' style="text-align:right"' : ''}>` +
+    `<button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm" data-sort="${key}" data-k="${c.k}">${c.l}${s.k === c.k ? (s.d > 0 ? ' ▲' : ' ▼') : ''}</button></th>`).join('') + '</tr>';
+  el.querySelector('tbody').innerHTML = sorted.slice(0, limit).map(r =>
+    '<tr>' + cols.map(c => `<td${c.r ? ' style="text-align:right"' : ''}>${c.f ? c.f(r) : esc(r[c.k])}</td>`).join('') + '</tr>').join('')
+    || `<tr><td colspan="${cols.length}">Aucun résultat pour ces filtres.</td></tr>`;
+  return sorted.length;
+}
 
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-            const activeBtn = document.getElementById(`btn-tab-${tabId}`);
-            activeBtn.classList.add('bg-slate-900', 'text-white', 'shadow-sm');
-            activeBtn.classList.remove('text-slate-600');
+function drawTerr() {
+  const vue = $('#f-vue').value, m = new Map();
+  filtered.forEach(r => {
+    const k = vue === 'dep' ? r.dep : vue === 'epci' ? r.epciKey : r.codeCom;
+    let o = m.get(k);
+    if (!o) {
+      o = vue === 'dep' ? {nom:r.dep, pop:pop.ok ? pop.dep[r.depCode] : null}
+        : vue === 'epci' ? {nom:r.epciNom, pop:r.epciPop}
+        : {nom:`${r.commune} (${r.depCode})`, pop:r.comPop};
+      o.n = 0; o.montant = 0; m.set(k, o);
+    }
+    o.n++; o.montant += r.montant;
+  });
+  const rows = [...m.values()].map(o => ({...o, ratio:o.pop > 0 ? o.montant / o.pop : null}));
+  table('#t-terr', 'terr', [
+    {k:'nom', l:{dep:'Département', epci:'EPCI', com:'Commune'}[vue]},
+    {k:'n', l:'Projets', r:1, f:r => nb(r.n)},
+    {k:'pop', l:'Population', r:1, f:r => nb(r.pop)},
+    {k:'montant', l:'Montant engagé', r:1, f:r => eur(r.montant)},
+    {k:'ratio', l:'Ratio (€/hab.)', r:1, f:r => `<strong>${ratioTxt(r.ratio)}</strong>`}
+  ], rows, 500);
+}
 
-            if (tabId === 'carto' && map) {
-                setTimeout(() => map.invalidateSize(), 150);
-            }
-        }
+function drawPrj() {
+  const n = table('#t-prj', 'prj', [
+    {k:'nom', l:'Projet'}, {k:'annee', l:'Année'}, {k:'theme', l:'Thématique'},
+    {k:'commune', l:'Commune'}, {k:'benef', l:'Bénéficiaire'},
+    {k:'montant', l:'Montant', r:1, f:r => eur(r.montant)}
+  ], filtered, st.limit);
+  $('#prj-count').textContent = `${Math.min(st.limit, n)} projets affichés sur ${nb(n)}`;
+  $('#more').hidden = st.limit >= n;
+}
 
-        function initMap() {
-            map = L.map('map').setView([48.202, -2.932], 8);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-            markersLayer = L.layerGroup().addTo(map);
-        }
+// ----- Carte -----
+function initMap() {
+  map = L.map('map').setView([48.2, -2.9], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; contributeurs OpenStreetMap'}).addTo(map);
+  layer = L.layerGroup().addTo(map);
+  new ResizeObserver(() => { if ($('#map').offsetWidth) { map.invalidateSize(); if (mapDirty) drawMap(); } }).observe($('#map'));
+}
+function drawMap() {
+  mapDirty = false; layer.clearLayers();
+  const pts = filtered.filter(r => r.lat && r.lng).sort((a, b) => b.montant - a.montant);
+  const max = Math.max(...pts.map(r => r.montant), 1);
+  $('#map-miss').textContent = filtered.length - pts.length ? `${filtered.length - pts.length} projets sans coordonnées ne sont pas affichés.` : '';
+  pts.forEach(r => L.circleMarker([r.lat, r.lng], {
+    radius:Math.max(5, Math.sqrt(r.montant / max) * 26), fillColor:yColor(r.annee), color:'#fff', weight:1.5, fillOpacity:.75
+  }).bindPopup(`<strong>${esc(r.nom)}</strong><br>${esc(r.commune)} — ${esc(r.epciNom)}<br>${esc(r.theme)} · ${esc(r.annee)}<br><strong>${eur(r.montant)}</strong>`).addTo(layer));
+  if (pts.length) map.fitBounds(pts.map(r => [r.lat, r.lng]), {padding:[30, 30], maxZoom:12});
+}
 
-        fetch(jsonUrl)
-            .then(res => res.json())
-            .then(data => {
-                allData = Array.isArray(data) ? data : (data.features || []);
-                
-                allData = allData.map((item, index) => {
-                    const props = item.properties || item;
-                    return {
-                        id: index,
-                        nom: props.nom_du_projet || props.nom || `Projet ${index + 1}`,
-                        annee: String(props.annee || 'N/C'),
-                        departement: String(props.code_departement || 'N/C'),
-                        epci: props.libelle_epci || 'Non rattaché',
-                        commune: props.nom_commune || 'Inconnue',
-                        population: Number(props.population) || 0,
-                        montant: Number(props.montant_engage) || 0,
-                        coordinates: item.geometry && item.geometry.coordinates ? item.geometry.coordinates : 
-                                     (props.longitude && props.latitude ? [parseFloat(props.longitude), parseFloat(props.latitude)] : null)
-                    };
-                });
+// ----- Événements -----
+let timer;
+['#f-annee', '#f-dep', '#f-theme'].forEach(s => $(s).addEventListener('change', render));
+$('#f-q').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(render, 250); });
+$('#f-vue').addEventListener('change', drawTerr);
+$('#reset').addEventListener('click', () => { ['#f-annee', '#f-dep', '#f-theme'].forEach(s => $(s).value = 'ALL'); $('#f-q').value = ''; render(); });
+$('#more').addEventListener('click', () => { st.limit += 100; drawPrj(); });
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-sort]'); if (!b) return;
+  const s = st[b.dataset.sort], k = b.dataset.k;
+  s.d = s.k === k ? -s.d : (['nom', 'commune', 'theme', 'benef', 'annee'].includes(k) ? 1 : -1); s.k = k;
+  b.dataset.sort === 'terr' ? drawTerr() : drawPrj();
+});
+$('#export').addEventListener('click', () => {
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const csv = [['annee','departement','commune','epci','thematique','demarche','projet','beneficiaire','montant_engage'].join(';'),
+    ...filtered.map(r => [r.annee, r.dep, r.commune, r.epciNom, r.theme, r.demarche, r.nom, r.benef, r.montant].map(q).join(';'))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'fonds_vert_bretagne_selection.csv'; a.click();
+});
 
-                populateFilters();
-                updateDashboard();
-
-                document.getElementById('filter-year').addEventListener('change', updateDashboard);
-                document.getElementById('filter-dept').addEventListener('change', updateDashboard);
-                document.getElementById('search-input').addEventListener('input', updateDashboard);
-            })
-            .catch(err => {
-                console.error(err);
-                document.querySelectorAll('tbody').forEach(el => {
-                    el.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 font-semibold">Erreur de chargement du fichier JSON</td></tr>`;
-                });
-            });
-
-        function populateFilters() {
-            const years = [...new Set(allData.map(d => d.annee))].filter(y => y !== 'N/C').sort();
-            const depts = [...new Set(allData.map(d => d.departement))].filter(d => d !== 'N/C').sort();
-
-            const yearSelect = document.getElementById('filter-year');
-            years.forEach(y => {
-                let opt = document.createElement('option');
-                opt.value = y; opt.textContent = `Année ${y}`;
-                yearSelect.appendChild(opt);
-            });
-
-            const deptSelect = document.getElementById('filter-dept');
-            depts.forEach(d => {
-                let opt = document.createElement('option');
-                opt.value = d; opt.textContent = `Département ${d}`;
-                deptSelect.appendChild(opt);
-            });
-        }
-
-        function updateDashboard() {
-            const selYear = document.getElementById('filter-year').value;
-            const selDept = document.getElementById('filter-dept').value;
-            const search = document.getElementById('search-input').value.toLowerCase();
-
-            const filtered = allData.filter(item => {
-                const matchY = (selYear === 'ALL' || item.annee === selYear);
-                const matchD = (selDept === 'ALL' || item.departement === selDept);
-                const matchS = search === '' || 
-                    item.nom.toLowerCase().includes(search) ||
-                    item.commune.toLowerCase().includes(search) ||
-                    item.epci.toLowerCase().includes(search);
-                return matchY && matchD && matchS;
-            });
-
-            updateKPIs(filtered);
-            renderCharts(filtered);
-            renderEpciTable(filtered);
-            renderProjectsTable(filtered);
-            renderMap(filtered);
-        }
-
-        function updateKPIs(data) {
-            const totalMontant = data.reduce((acc, curr) => acc + curr.montant, 0);
-            const communesSet = new Set(data.map(d => d.commune));
-            
-            // Calcul du ratio global par habitant sur les communes bénéficiaires uniques filtrées
-            const uniqueCommunesMap = {};
-            data.forEach(d => { uniqueCommunesMap[d.commune] = d.population; });
-            const totalPop = Object.values(uniqueCommunesMap).reduce((a, b) => a + b, 0);
-            const ratioGlobal = totalPop > 0 ? totalMontant / totalPop : 0;
-
-            document.getElementById('kpi-montant').textContent = totalMontant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-            document.getElementById('kpi-projets').textContent = data.length.toLocaleString('fr-FR');
-            document.getElementById('kpi-communes').textContent = communesSet.size.toLocaleString('fr-FR');
-            document.getElementById('kpi-ratio').textContent = ratioGlobal.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €/hab.';
-        }
-
-        function renderMap(data) {
-            if (!markersLayer) return;
-            markersLayer.clearLayers();
-            let bounds = [];
-            const maxMontant = Math.max(...data.map(d => d.montant), 1);
-
-            data.forEach(item => {
-                if (item.coordinates && item.coordinates.length >= 2) {
-                    const [lng, lat] = item.coordinates;
-                    const radius = Math.max(6, Math.min(30, Math.sqrt(item.montant / maxMontant) * 25));
-                    const color = getColorForYear(item.annee);
-
-                    const circle = L.circleMarker([lat, lng], {
-                        radius: radius,
-                        fillColor: color,
-                        color: '#ffffff',
-                        weight: 2,
-                        opacity: 1,
-                        fillOpacity: 0.8
-                    });
-
-                    circle.bindPopup(`
-                        <div class="p-1 text-xs space-y-1">
-                            <strong class="text-sm block text-slate-900">${item.nom}</strong>
-                            <div><b>Commune :</b> ${item.commune} (${item.population.toLocaleString('fr-FR')} hab.)</div>
-                            <div><b>EPCI :</b> ${item.epci}</div>
-                            <div><b>Année :</b> ${item.annee}</div>
-                            <div class="font-bold text-emerald-600">Montant : ${item.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</div>
-                        </div>
-                    `);
-
-                    markersLayer.addLayer(circle);
-                    bounds.push([lat, lng]);
-                }
-            });
-
-            if (bounds.length > 0) {
-                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
-            }
-        }
-
-        function renderCharts(data) {
-            const yearMap = {}, epciMap = {};
-            data.forEach(item => {
-                yearMap[item.annee] = (yearMap[item.annee] || 0) + item.montant;
-                epciMap[item.epci] = (epciMap[item.epci] || 0) + item.montant;
-            });
-
-            const topEpci = Object.entries(epciMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
-
-            const ctxY = document.getElementById('chartYear').getContext('2d');
-            if (chartYearInstance) chartYearInstance.destroy();
-            chartYearInstance = new Chart(ctxY, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(yearMap).sort(),
-                    datasets: [{
-                        data: Object.keys(yearMap).sort().map(y => yearMap[y]),
-                        backgroundColor: Object.keys(yearMap).sort().map(y => getColorForYear(y)),
-                        borderRadius: 6
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-
-            const ctxE = document.getElementById('chartEpci').getContext('2d');
-            if (chartEpciInstance) chartEpciInstance.destroy();
-            chartEpciInstance = new Chart(ctxE, {
-                type: 'bar',
-                data: {
-                    labels: topEpci.map(i => i[0]),
-                    datasets: [{
-                        data: topEpci.map(i => i[1]),
-                        backgroundColor: '#334155',
-                        borderRadius: 6
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }
-            });
-        }
-
-        function renderEpciTable(data) {
-            const epciAgg = {};
-            data.forEach(item => {
-                if (!epciAgg[item.epci]) {
-                    epciAgg[item.epci] = { count: 0, montant: 0, communes: {} };
-                }
-                epciAgg[item.epci].count++;
-                epciAgg[item.epci].montant += item.montant;
-                epciAgg[item.epci].communes[item.commune] = item.population;
-            });
-
-            const rows = Object.entries(epciAgg).map(([epci, vals]) => {
-                const totalPop = Object.values(vals.communes).reduce((a, b) => a + b, 0);
-                const ratio = totalPop > 0 ? vals.montant / totalPop : 0;
-                return { epci, count: vals.count, population: totalPop, montant: vals.montant, ratio };
-            });
-
-            rows.sort((a, b) => b.montant - a.montant);
-
-            let html = '';
-            rows.forEach(r => {
-                html += `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="p-4 font-semibold text-slate-900">${r.epci}</td>
-                        <td class="p-4 text-center font-bold text-blue-600">${r.count}</td>
-                        <td class="p-4 text-right text-slate-600">${r.population.toLocaleString('fr-FR')} hab.</td>
-                        <td class="p-4 text-right font-extrabold text-slate-900">${r.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
-                        <td class="p-4 text-right font-bold text-purple-600 bg-purple-50/40">${r.ratio.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €/hab.</td>
-                    </tr>
-                `;
-            });
-            if (rows.length === 0) html = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Aucun résultat</td></tr>`;
-            document.getElementById('epci-tbody').innerHTML = html;
-        }
-
-        function renderProjectsTable(data) {
-            let html = '';
-            data.forEach(item => {
-                html += `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="p-4 font-semibold text-slate-900">${item.nom}</td>
-                        <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-bold" style="background:${getColorForYear(item.annee)}20; color:${getColorForYear(item.annee)};">${item.annee}</span></td>
-                        <td class="p-4 text-slate-600 text-xs">${item.epci}</td>
-                        <td class="p-4 text-slate-700 font-medium">${item.commune} <span class="text-xs text-slate-400">(${item.population.toLocaleString('fr-FR')} hab.)</span></td>
-                        <td class="p-4 text-right font-bold text-emerald-600">${item.montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
-                    </tr>
-                `;
-            });
-            if (data.length === 0) html = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Aucun projet trouvé</td></tr>`;
-            document.getElementById('projects-tbody').innerHTML = html;
-        }
-
-        function sortTable(colIdx, tableId) {
-            const table = document.getElementById(tableId);
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            if (rows.length === 1 && rows[0].cells.length === 1) return;
-
-            const asc = table.getAttribute('data-sort') !== 'asc';
-            table.setAttribute('data-sort', asc ? 'asc' : 'desc');
-
-            rows.sort((a, b) => {
-                let vA = a.cells[colIdx].textContent.trim();
-                let vB = b.cells[colIdx].textContent.trim();
-
-                if (vA.includes('€') || vA.includes('hab.')) {
-                    vA = parseFloat(vA.replace(/[^\d]/g, '')) || 0;
-                    vB = parseFloat(vB.replace(/[^\d]/g, '')) || 0;
-                    return asc ? vA - vB : vB - vA;
-                }
-                return asc ? vA.localeCompare(vB, 'fr') : vB.localeCompare(vA, 'fr');
-            });
-
-            rows.forEach(r => tbody.appendChild(r));
-        }
-
-        initMap();
-    </script>
+load();
+</script>
 </body>
 </html>

@@ -331,7 +331,7 @@ $('#export').addEventListener('click', () => {
   const csv = [['annee','departement','commune','epci','thematique','demarche','projet','beneficiaire','montant_engage'].join(';'),
     ...filtered.map(r => [r.annee, r.dep, r.commune, r.epciNom, r.theme, r.demarche, r.nom, r.benef, r.montant].map(q).join(';'))].join('\n');
   const a = document.createElement('a');
-  const url = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'}));
+  const url = URL.createObjectURL(new Blob([String.fromCharCode(0xFEFF) + csv], {type:'text/csv;charset=utf-8'}));
   a.href = url;
   a.download = 'fonds_vert_bretagne_selection.csv'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);

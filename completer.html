@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compléter les lignes sans commune — Fonds vert Bretagne</title>
+<style>
+body{font-family:Marianne,Arial,sans-serif;max-width:1500px;margin:1rem auto;padding:0 1rem;color:#161616}
+h1{font-size:1.4rem}
+table{border-collapse:collapse;width:100%;font-size:.82rem}
+th,td{border:1px solid #ddd;padding:.35rem .5rem;vertical-align:top;text-align:left}
+th{background:#f6f6f6;position:sticky;top:0}
+input{width:100%;box-sizing:border-box;font:inherit;padding:.15rem .3rem}
+.ro{color:#555;max-width:340px}
+.edit input{background:#fff8e1}
+button{margin:.4rem .6rem .4rem 0;padding:.55rem 1rem;cursor:pointer;font:inherit}
+#msg{font-weight:700}
+</style>
+</head>
+<body>
+<h1>Compléter les lignes sans commune — Fonds vert Bretagne</h1>
+<p id="msg">Chargement de fonds_vert_bretagne.json…</p>
+<p>Cellules jaunes à remplir : <strong>code_commune</strong> (code Insee, ex. <code>22054</code>), <strong>nom_commune</strong>, <strong>epci</strong> (nom de l’EPCI), <strong>latitude</strong>, <strong>longitude</strong>. Laissez vide ce qui est inconnu. Ensuite, téléchargez le JSON corrigé et remplacez <code>fonds_vert_bretagne.json</code> à la racine du dépôt (le tableau de bord se mettra à jour automatiquement).</p>
+<p>
+  <button id="dl-json">Télécharger fonds_vert_bretagne.json corrigé</button>
+  <button id="dl-csv">Télécharger uniquement les corrections (CSV)</button>
+</p>
+<div style="overflow:auto;max-height:70vh">
+<table id="t"><thead></thead><tbody></tbody></table>
+</div>
+
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bad = v => !v || /^(null|0null)$/i.test(String(v).trim());
+const FIELDS = ['code_commune', 'nom_commune', 'epci', 'latitude', 'longitude'];
+let raw = [], badRows = [];
+
+fetch('fonds_vert_bretagne.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+  raw = Array.isArray(d) ? d : (d.features || []).map(f => f.properties);
+  badRows = raw.filter(r => bad(r.code_commune) || bad(r.nom_commune));
+  document.getElementById('msg').textContent = badRows.length + ' lignes sans commune à compléter.';
+  const cols = ['Dossier', 'Année', 'Démarche', 'Bénéficiaire', 'Projet', 'Montant (€)', ...FIELDS];
+  document.querySelector('#t thead').innerHTML = '<tr>' + cols.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>';
+  document.querySelector('#t tbody').innerHTML = badRows.map((r, i) => '<tr>' +
+    `<td class="ro">${esc(r.numero_dossier_ds)}</td>` +
+    `<td class="ro">${esc(r.annee)}</td>` +
+    `<td class="ro">${esc(r.demarche)}</td>` +
+    `<td class="ro">${esc(r.beneficiaire)}</td>` +
+    `<td class="ro">${esc(r.nom_du_projet)}</td>` +
+    `<td class="ro" style="text-align:right">${esc(r.montant_engage)}</td>` +
+    FIELDS.map(f => `<td class="edit"><input data-i="${i}" data-f="${f}" value="${esc(bad(r[f]) ? '' : r[f])}"></td>`).join('') +
+    '</tr>').join('');
+}).catch(e => { document.getElementById('msg').textContent = 'Erreur de chargement de fonds_vert_bretagne.json : ' + e; });
+
+const readEdits = () => {
+  const m = {};
+  document.querySelectorAll('input[data-i]').forEach(inp => {
+    (m[inp.dataset.i] = m[inp.dataset.i] || {})[inp.dataset.f] = inp.value.trim();
+  });
+  return m;
+};
+
+document.getElementById('dl-json').addEventListener('click', () => {
+  const m = readEdits();
+  badRows.forEach((r, i) => {
+    const e = m[i] || {};
+    FIELDS.forEach(f => {
+      if (e[f]) r[f] = (f === 'latitude' || f === 'longitude') ? (parseFloat(e[f].replace(',', '.')) || null) : e[f];
+    });
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(raw, null, 2)], {type: 'application/json;charset=utf-8'}));
+  a.download = 'fonds_vert_bretagne.json';
+  a.click();
+});
+
+document.getElementById('dl-csv').addEventListener('click', () => {
+  const m = readEdits();
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const head = ['numero_dossier_ds', 'annee', 'demarche', 'beneficiaire', 'nom_du_projet', 'montant_engage', ...FIELDS].join(';');
+  const lines = badRows.map((r, i) => [r.numero_dossier_ds, r.annee, r.demarche, r.beneficiaire, r.nom_du_projet, r.montant_engage, ...FIELDS.map(f => (m[i] || {})[f] ?? '')].map(q).join(';'));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([String.fromCharCode(0xFEFF) + [head, ...lines].join('\n')], {type: 'text/csv;charset=utf-8'}));
+  a.download = 'corrections_fonds_vert.csv';
+  a.click();
+});
+</script>
+</body>
+</html>

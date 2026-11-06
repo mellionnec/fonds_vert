@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Observatoire du Fonds vert en Bretagne : projets financés, montants engagés, thématiques et ratios par habitant.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%23000091'/%3E%3Ctext x='12' y='17' font-size='13' text-anchor='middle' fill='white' font-family='sans-serif'%3E%24%3C/text%3E%3C/svg%3E">
 <title>Observatoire du Fonds vert — Bretagne</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.12.1/dist/dsfr.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.12.1/dist/utility/icons/icons.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
+[hidden]{display:none!important}
 #map{height:560px;width:100%}
 .kpi{border:1px solid var(--border-default-grey);padding:1rem 1.25rem;height:100%}
 .kpi p{margin:0}
@@ -32,6 +35,8 @@
 </header>
 
 <main class="fr-container fr-my-4w" id="contenu">
+
+  <noscript><div class="fr-alert fr-alert--error fr-alert--sm fr-mb-3w"><p>Cette page nécessite JavaScript pour afficher les données du Fonds vert.</p></div></noscript>
 
   <div class="fr-alert fr-alert--warning fr-alert--sm fr-mb-3w" id="alert-pop" hidden>
     <p>Les populations n’ont pas pu être chargées depuis geo.api.gouv.fr : les ratios par habitant sont indisponibles. Rechargez la page ou vérifiez votre connexion.</p>
@@ -74,8 +79,8 @@
       </div>
 
       <div class="fr-grid-row fr-grid-row--gutters fr-mb-4w">
-        <div class="fr-col-12 fr-col-lg-7"><h2 class="fr-h6">Montant engagé par thématique</h2><div class="chart-box"><canvas id="c-theme" role="img" aria-label="Montant engagé par thématique"></canvas></div></div>
-        <div class="fr-col-12 fr-col-lg-5"><h2 class="fr-h6">Montant engagé par année</h2><div class="chart-box"><canvas id="c-year" role="img" aria-label="Montant engagé par année"></canvas></div></div>
+        <div class="fr-col-12 fr-col-lg-7"><h2 class="fr-h6">Montant engagé par thématique</h2><div class="chart-box"><canvas id="c-theme" role="img" aria-label="Montant engagé par thématique">Graphique en barres horizontales : montant engagé par thématique.</canvas></div></div>
+        <div class="fr-col-12 fr-col-lg-5"><h2 class="fr-h6">Montant engagé par année</h2><div class="chart-box"><canvas id="c-year" role="img" aria-label="Montant engagé par année">Graphique en barres : montant engagé par année.</canvas></div></div>
       </div>
 
       <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
@@ -84,7 +89,7 @@
           <label class="fr-label" for="f-vue">Afficher par</label>
           <select class="fr-select" id="f-vue"><option value="dep">Département</option><option value="epci" selected>EPCI</option><option value="com">Commune</option></select></div></div>
       </div>
-      <div class="fr-table fr-table--no-caption"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
+      <div class="fr-table"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
         <table id="t-terr"><caption>Montants et ratios par territoire</caption><thead></thead><tbody></tbody></table>
       </div></div></div></div>
 
@@ -106,7 +111,7 @@
         <p class="fr-mb-0" id="prj-count"></p>
         <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-download-line fr-btn--icon-left" id="export">Exporter la sélection (CSV)</button>
       </div>
-      <div class="fr-table fr-table--no-caption"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
+      <div class="fr-table"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
         <table id="t-prj"><caption>Liste des projets</caption><thead></thead><tbody></tbody></table>
       </div></div></div></div>
       <button type="button" class="fr-btn fr-btn--tertiary" id="more">Afficher 100 projets de plus</button>
@@ -128,17 +133,20 @@ const JSON_URL = 'fonds_vert_bretagne.json';
 const GEO = 'https://geo.api.gouv.fr';
 
 // Regroupement des « démarches » en thématiques (modifiable ici). Le premier motif qui correspond l'emporte.
+// La comparaison se fait sur le texte normalisé (minuscules, accents supprimés), pour tolérer les deux graphies.
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const THEMES = [
-  ['Adaptation et risques',        /trait de c|littoral|inond|incend|papi|gemapi/i],
-  ['Mobilités durables',           /covoit|cyclab|mobilit|zfe|faibles émissions/i],
-  ['Renaturation et biodiversité', /renaturation|biodiversit/i],
-  ['Recyclage foncier et friches', /recyclage|friche/i],
-  ['Rénovation énergétique',       /rénovation|luminaire|éclairage/i],
-  ['Déchets et biodéchets',        /biodéchet|tri à la source/i],
-  ['Industrie et aménagement',     /industrie|maires/i],
-  ['Ingénierie et planification',  /ingénierie|pcaet/i]
+  ['Adaptation et risques',        /trait de c|littoral|inond|incend|papi|gemapi/],
+  ['Mobilités durables',           /covoit|cyclab|mobilit|zfe|faibles emissions/],
+  ['Renaturation et biodiversité', /renaturation|biodiversit/],
+  ['Recyclage foncier et friches', /recyclage|friche/],
+  ['Rénovation énergétique',       /renovation|luminaire|eclairage/],
+  ['Déchets et biodéchets',        /biodechet|tri a la source/],
+  ['Maires bâtisseurs',            /maires batisseurs/],
+  ['Industrie et aménagement',     /industrie/],
+  ['Ingénierie et planification',  /ingenierie|pcaet/]
 ];
-const themeOf = d => (THEMES.find(t => t[1].test(d || '')) || ['Autres'])[0];
+const themeOf = d => (THEMES.find(t => t[1].test(norm(d))) || ['Autres'])[0];
 const YEAR_COLORS = ['#000091', '#e1000f', '#18753c', '#b34000', '#6a6af4'];
 
 const $ = s => document.querySelector(s);
@@ -155,8 +163,13 @@ let map, layer, mapDirty = true, charts = {};
 const getJson = u => fetch(u).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
 
 async function load() {
+  initMap();
   let raw;
-  try { raw = await getJson(JSON_URL); } catch (e) { $('#alert-data').hidden = false; return; }
+  try { raw = await getJson(JSON_URL); } catch (e) {
+    $('#alert-data').hidden = false;
+    $('#map-miss').textContent = 'Carte indisponible : le fichier de données n’a pas pu être chargé.';
+    return;
+  }
   const rows = Array.isArray(raw) ? raw : (raw.features || []).map(f => f.properties);
   let com = [], epc = [];
   try {
@@ -189,8 +202,7 @@ async function load() {
   fill('#f-annee', years, y => y);
   fill('#f-dep', [...new Set(data.map(d => d.dep))].sort((a, b) => a.localeCompare(b, 'fr')), d => d);
   fill('#f-theme', [...new Set(data.map(d => d.theme))].sort((a, b) => a.localeCompare(b, 'fr')), t => t);
-  $('#legend').innerHTML = years.map((y, i) => `<span><i style="background:${YEAR_COLORS[i % YEAR_COLORS.length]}"></i>${y}</span>`).join('');
-  initMap();
+  $('#legend').innerHTML = years.map((y, i) => `<span><i style="background:${YEAR_COLORS[i % YEAR_COLORS.length]}"></i>${esc(y)}</span>`).join('');
   render();
 }
 const fill = (sel, vals, label) => vals.forEach(v => $(sel).insertAdjacentHTML('beforeend', `<option value="${esc(v)}">${esc(label(v))}</option>`));
@@ -258,7 +270,7 @@ function drawTerr() {
     if (!o) {
       o = vue === 'dep' ? {nom:r.dep, pop:pop.ok ? pop.dep[r.depCode] : null}
         : vue === 'epci' ? {nom:r.epciNom, pop:r.epciPop}
-        : {nom:`${r.commune} (${r.depCode})`, pop:r.comPop};
+        : {nom:r.depCode ? `${r.commune} (${r.depCode})` : r.commune, pop:r.comPop};
       o.n = 0; o.montant = 0; m.set(k, o);
     }
     o.n++; o.montant += r.montant;
@@ -293,7 +305,7 @@ function initMap() {
 function drawMap() {
   mapDirty = false; layer.clearLayers();
   const pts = filtered.filter(r => r.lat && r.lng).sort((a, b) => b.montant - a.montant);
-  const max = Math.max(...pts.map(r => r.montant), 1);
+  const max = pts.reduce((m, r) => Math.max(m, r.montant), 1);
   $('#map-miss').textContent = filtered.length - pts.length ? `${filtered.length - pts.length} projets sans coordonnées ne sont pas affichés.` : '';
   pts.forEach(r => L.circleMarker([r.lat, r.lng], {
     radius:Math.max(5, Math.sqrt(r.montant / max) * 26), fillColor:yColor(r.annee), color:'#fff', weight:1.5, fillOpacity:.75
@@ -319,8 +331,10 @@ $('#export').addEventListener('click', () => {
   const csv = [['annee','departement','commune','epci','thematique','demarche','projet','beneficiaire','montant_engage'].join(';'),
     ...filtered.map(r => [r.annee, r.dep, r.commune, r.epciNom, r.theme, r.demarche, r.nom, r.benef, r.montant].map(q).join(';'))].join('\n');
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8'}));
+  const url = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'}));
+  a.href = url;
   a.download = 'fonds_vert_bretagne_selection.csv'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
 load();

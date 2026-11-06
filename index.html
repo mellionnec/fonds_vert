@@ -155,6 +155,7 @@ const eur = v => v.toLocaleString('fr-FR', {style:'currency', currency:'EUR', ma
 const ratioTxt = v => v == null ? 'n.d.' : v.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €/hab.';
 const nb = v => v == null ? 'n.d.' : v.toLocaleString('fr-FR');
 const cap = s => String(s || '').toLowerCase().replace(/(^|[\s'’-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+const badCom = v => !v || /^null$/i.test(String(v).trim());
 
 let data = [], filtered = [], years = [], pop = {com:{}, epci:{}, dep:{}, reg:0, ok:false}, depCode = {};
 const st = {terr:{k:'montant', d:-1}, prj:{k:'montant', d:-1}, limit:100};
@@ -191,7 +192,7 @@ async function load() {
     depCode[r.nom_departement] = r.code_departement;
     return {
       i, annee: String(r.annee), dep: r.nom_departement, depCode: r.code_departement,
-      commune: c ? c.nom : cap(r.nom_commune), codeCom: r.code_commune, comPop: c ? c.population : null,
+      commune: c ? c.nom : (badCom(r.nom_commune) ? 'Non renseigné' : cap(r.nom_commune)), codeCom: badCom(r.code_commune) ? null : r.code_commune, comPop: c ? c.population : null,
       epciKey: ce || 'n:' + (r.epci || ''), epciNom: e ? e.nom : (r.epci || 'Non renseigné'), epciPop: e ? e.population : null,
       demarche: r.demarche, theme: themeOf(r.demarche), nom: r.nom_du_projet, benef: r.beneficiaire,
       montant: Number(r.montant_engage) || 0, lat: r.latitude, lng: r.longitude
@@ -224,7 +225,7 @@ function kpis() {
   const total = filtered.reduce((a, r) => a + r.montant, 0), pp = periPop();
   $('#k-montant').textContent = eur(total);
   $('#k-projets').textContent = nb(filtered.length);
-  $('#k-communes').textContent = nb(new Set(filtered.map(r => r.codeCom)).size);
+  $('#k-communes').textContent = nb(new Set(filtered.map(r => r.codeCom).filter(Boolean)).size);
   $('#k-ratio').textContent = pp ? ratioTxt(total / pp) : 'n.d.';
   $('#k-pop').textContent = pp ? 'Population de référence : ' + nb(pp) + ' hab.' : '';
 }

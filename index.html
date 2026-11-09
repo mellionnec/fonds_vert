@@ -18,6 +18,8 @@
 .fr-table th .fr-btn{font-weight:700;padding:.25rem .5rem}
 .legend span{display:inline-flex;align-items:center;gap:.4rem;margin-right:1.25rem}
 .legend i{width:.9rem;height:.9rem;border-radius:50%;display:inline-block}
+.leaflet-popup-content .fiche-btn{margin-top:.4rem}
+#fiche-photo{object-fit:cover;max-height:260px;width:100%;border-radius:.25rem;background:#f6f6f6}
 </style>
 </head>
 <body>
@@ -120,7 +122,7 @@
 </main>
 
 <footer class="fr-footer" role="contentinfo"><div class="fr-container"><div class="fr-footer__bottom">
-  <p class="fr-footer__bottom-copy">Données : fonds_vert_bretagne.json (Fonds vert, région Bretagne). Populations : population Insee via geo.api.gouv.fr. Fond de carte © contributeurs OpenStreetMap.</p>
+  <p class="fr-footer__bottom-copy">Données : fonds_vert_bretagne.json (Fonds vert, région Bretagne). Populations : population Insee via geo.api.gouv.fr. Photos des communes : Wikipédia / Wikimedia Commons. Fond de carte © contributeurs OpenStreetMap.</p>
 </div></div></footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -147,7 +149,8 @@ const THEMES = [
   ['Ingénierie et planification',  /ingenierie|pcaet/]
 ];
 const themeOf = d => (THEMES.find(t => t[1].test(norm(d))) || ['Autres'])[0];
-const YEAR_COLORS = ['#000091', '#e1000f', '#18753c', '#b34000', '#6a6af4'];
+const YEAR_COLORS = ['#7dd3fc', '#f9a8d4', '#86efac', '#fcd34d', '#c4b5fd'];
+const THEME_COLORS = ['#7dd3fc', '#f9a8d4', '#86efac', '#fcd34d', '#c4b5fd', '#fda4af', '#a7f3d0', '#fde68a', '#ddd6fe', '#bae6fd'];
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -191,7 +194,7 @@ async function load() {
     const c = pop.com[r.code_commune], ce = c && c.codeEpci, e = ce && pop.epci[ce];
     depCode[r.nom_departement] = r.code_departement;
     return {
-      i, annee: String(r.annee), dep: r.nom_departement, depCode: r.code_departement,
+      raw: r, i, annee: String(r.annee), dep: r.nom_departement, depCode: r.code_departement,
       commune: c ? c.nom : (badCom(r.nom_commune) ? 'Non renseigné' : cap(r.nom_commune)), codeCom: badCom(r.code_commune) ? null : r.code_commune, comPop: c ? c.population : null,
       epciKey: ce || 'n:' + (r.epci || ''), epciNom: e ? e.nom : (r.epci || 'Non renseigné'), epciPop: e ? e.population : null,
       demarche: r.demarche, theme: themeOf(r.demarche), nom: r.nom_du_projet, benef: r.beneficiaire,
@@ -238,7 +241,7 @@ function drawCharts() {
   const tick = v => (v / 1e6).toLocaleString('fr-FR') + ' M€';
   const mk = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($('#' + id), cfg); };
   const base = {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}};
-  mk('c-theme', {type:'bar', data:{labels:T.map(x => x[0]), datasets:[{data:T.map(x => x[1]), backgroundColor:'#000091'}]},
+  mk('c-theme', {type:'bar', data:{labels:T.map(x => x[0]), datasets:[{data:T.map(x => x[1]), backgroundColor:T.map((_, i) => THEME_COLORS[i % THEME_COLORS.length])}]},
     options:{...base, indexAxis:'y', scales:{x:{ticks:{callback:tick}}},
       plugins:{legend:{display:false}, tooltip:{callbacks:{label:c => eur(c.raw), afterLabel:c => pp ? ratioTxt(c.raw / pp) : ''}}}}});
   mk('c-year', {type:'bar', data:{labels:Y, datasets:[{data:Y.map(k => byY[k]), backgroundColor:Y.map(yColor)}]},
@@ -290,7 +293,8 @@ function drawPrj() {
   const n = table('#t-prj', 'prj', [
     {k:'nom', l:'Projet'}, {k:'annee', l:'Année'}, {k:'theme', l:'Thématique'},
     {k:'commune', l:'Commune'}, {k:'benef', l:'Bénéficiaire'},
-    {k:'montant', l:'Montant', r:1, f:r => eur(r.montant)}
+    {k:'montant', l:'Montant', r:1, f:r => eur(r.montant)},
+    {k:'i', l:'Fiche', f:r => `<button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fiche-btn" data-i="${r.i}">Fiche</button>`}
   ], filtered, st.limit);
   $('#prj-count').textContent = `${Math.min(st.limit, n)} projets affichés sur ${nb(n)}`;
   $('#more').hidden = st.limit >= n;
@@ -310,7 +314,7 @@ function drawMap() {
   $('#map-miss').textContent = filtered.length - pts.length ? `${filtered.length - pts.length} projets sans coordonnées ne sont pas affichés.` : '';
   pts.forEach(r => L.circleMarker([r.lat, r.lng], {
     radius:Math.max(5, Math.sqrt(r.montant / max) * 26), fillColor:yColor(r.annee), color:'#fff', weight:1.5, fillOpacity:.75
-  }).bindPopup(`<strong>${esc(r.nom)}</strong><br>${esc(r.commune)} — ${esc(r.epciNom)}<br>${esc(r.theme)} · ${esc(r.annee)}<br><strong>${eur(r.montant)}</strong>`).addTo(layer));
+  }).bindPopup(`<strong>${esc(r.nom)}</strong><br>${esc(r.commune)} — ${esc(r.epciNom)}<br>${esc(r.theme)} · ${esc(r.annee)} · <strong>${eur(r.montant)}</strong><br><button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fiche-btn" data-i="${r.i}">Fiche projet</button>`).addTo(layer));
   if (pts.length) map.fitBounds(pts.map(r => [r.lat, r.lng]), {padding:[30, 30], maxZoom:12});
 }
 
@@ -338,7 +342,64 @@ $('#export').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
+// ----- Fiche projet (modale) -----
+const LABELS = {numero_dossier_ds:'N° dossier DS', annee:'Année', nom_region:'Région', code_departement:'Code département', nom_departement:'Département', code_commune:'Code commune', nom_commune:'Commune', epci:'EPCI', demarche:'Démarche', nom_du_projet:'Projet', description_projet:'Description', beneficiaire:'Bénéficiaire', operateur:'Opérateur', montant_engage:'Montant engagé', latitude:'Latitude', longitude:'Longitude'};
+async function communePhoto(nom) {
+  if (!nom || /renseign/i.test(nom)) return null;
+  try {
+    const u = 'https://fr.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages&piprop=original&redirects=1&titles=' + encodeURIComponent(nom);
+    const d = await (await fetch(u)).json();
+    const p = Object.values((d.query || {}).pages || {}).find(p => p.original && /\.(jpe?g|png)$/i.test(p.original.source));
+    if (p) return p.original.source;
+  } catch (e) {}
+  try {
+    const u2 = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url&iiurlwidth=800&generator=categorymembers&gcmtitle=Category:' + encodeURIComponent(nom) + '&gcmtype=file&gcmlimit=20';
+    const d2 = await (await fetch(u2)).json();
+    const ii = Object.values((d2.query || {}).pages || {}).map(p => p.imageinfo && p.imageinfo[0]).find(i => i && /\.(jpe?g|png)$/i.test(i.thumburl || i.url || ''));
+    if (ii) return ii.thumburl || ii.url;
+  } catch (e) {}
+  return null;
+}
+async function openFiche(i) {
+  const r = data.find(d => d.i === i);
+  if (!r) return;
+  const raw = r.raw || {};
+  $('#fiche-title').textContent = r.nom || 'Projet';
+  const rowsHtml = Object.entries(raw).filter(([, v]) => v !== null && v !== undefined && String(v) !== '')
+    .map(([k, v]) => `<tr><th scope="row" class="fr-text--sm">${esc(LABELS[k] || k)}</th><td>${k === 'montant_engage' ? eur(Number(v) || 0) : esc(v)}</td></tr>`).join('');
+  $('#fiche-body').innerHTML =
+    `<p class="fr-text--sm fr-mb-2w">Commune : <strong>${esc(r.commune)}</strong> · EPCI : ${esc(r.epciNom)} · ${esc(r.theme)} · ${esc(r.annee)} · <strong>${eur(r.montant)}</strong></p>
+     <div class="fr-grid-row fr-grid-row--gutters">
+       <div class="fr-col-12 fr-col-md-4"><img id="fiche-photo" alt="Photo de ${esc(r.commune)}" hidden><p class="fr-text--xs fr-mt-1w">Photo : Wikipédia / Wikimedia Commons (licence libre), si disponible pour cette commune.</p></div>
+       <div class="fr-col-12 fr-col-md-8"><div class="fr-table fr-table--sm"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content"><table><tbody>${rowsHtml}</tbody></table></div></div></div></div></div></div>
+     </div>`;
+  const img = $('#fiche-photo');
+  img.hidden = true; img.removeAttribute('src');
+  communePhoto(r.commune).then(src => { if (src) { img.src = src; img.hidden = false; } });
+  const dlg = document.getElementById('fiche-modal');
+  try { window.dsfr(dlg).modal.disclose(); } catch (e) { if (dlg.showModal) dlg.showModal(); }
+}
+document.addEventListener('click', e => { const b = e.target.closest('.fiche-btn'); if (b) openFiche(Number(b.dataset.i)); });
+
 load();
 </script>
+
+<dialog id="fiche-modal" class="fr-modal" role="dialog" aria-labelledby="fiche-title">
+  <div class="fr-container fr-container--fluid fr-container-md">
+    <div class="fr-grid-row fr-grid-row--center">
+      <div class="fr-col-12 fr-col-md-10 fr-col-lg-8">
+        <div class="fr-modal__body">
+          <div class="fr-modal__header">
+            <button class="fr-btn--close fr-btn" aria-controls="fiche-modal" title="Fermer la fiche projet">Fermer</button>
+          </div>
+          <div class="fr-modal__content">
+            <h1 id="fiche-title" class="fr-modal__title">Fiche projet</h1>
+            <div id="fiche-body"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
 </body>
 </html>

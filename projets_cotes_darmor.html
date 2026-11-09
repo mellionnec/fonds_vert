@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-scheme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Tous les projets Fonds vert des Côtes-d'Armor (22) avec code INSEE validé (référentiel officiel geo.api.gouv.fr / INSEE).">
+<title>Tous les projets Fonds vert — Côtes-d'Armor (22)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.12.1/dist/dsfr.min.css">
+<style>
+td.rem{color:#b34000;font-size:.8rem}
+#msg{font-weight:700}
+</style>
+</head>
+<body>
+<header role="banner" class="fr-header"><div class="fr-header__body"><div class="fr-container"><div class="fr-header__body-row">
+  <div class="fr-header__brand"><div class="fr-header__brand-top"><div class="fr-header__logo"><p class="fr-logo">République<br>Française</p></div></div>
+  <div class="fr-header__service"><p class="fr-header__service-title">Tous les projets Fonds vert — Côtes-d'Armor (22)</p>
+  <p class="fr-header__service-tagline">Avec code INSEE de la commune, validé contre le référentiel officiel (geo.api.gouv.fr / INSEE)</p></div></div>
+</div></div></div></header>
+<main class="fr-container fr-my-4w">
+  <div class="fr-callout fr-callout--sm fr-mb-3w">
+    <p class="fr-callout__text fr-text--sm" id="msg">Chargement…</p>
+    <p class="fr-text--sm">
+      <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm" id="export">Exporter le tableau en CSV</button>
+      <a class="fr-btn fr-btn--tertiary fr-btn--sm" href="top12_cotes_darmor.html">Voir le top 12</a>
+      <a class="fr-btn fr-btn--tertiary fr-btn--sm" href="index.html">Tableau de bord</a>
+    </p>
+  </div>
+  <div class="fr-table"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
+    <table id="t">
+      <caption>Tous les projets Fonds vert du département des Côtes-d'Armor (22), avec code INSEE</caption>
+      <thead><tr>
+        <th scope="col">Année</th><th scope="col">Code INSEE</th><th scope="col">Commune</th><th scope="col">EPCI</th>
+        <th scope="col">Démarche</th><th scope="col">Projet</th><th scope="col">Bénéficiaire</th>
+        <th scope="col" style="text-align:right">Montant engagé</th><th scope="col">N° dossier</th><th scope="col">Remarque</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div></div></div></div>
+</main>
+<footer class="fr-footer" role="contentinfo"><div class="fr-container"><div class="fr-footer__bottom">
+  <p class="fr-footer__bottom-copy">Données : fonds_vert_bretagne.json (Fonds vert, Bretagne). Codes INSEE : référentiel officiel via geo.api.gouv.fr (INSEE). Sélection générée le 2026-11-09.</p>
+</div></div></footer>
+
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur = v => Number(v).toLocaleString('fr-FR', {style:'currency', currency:'EUR', maximumFractionDigits:0});
+const bad = v => !v || /^(null|0null)$/i.test(String(v).trim());
+let rows = [];
+
+Promise.all([
+  fetch('fonds_vert_bretagne.json').then(r => r.json()),
+  fetch('https://geo.api.gouv.fr/communes?codeRegion=53&fields=code,nom,codeDepartement').then(r => r.json())
+]).then(([data, coms]) => {
+  const byCode = {}; coms.forEach(c => byCode[c.code] = c);
+  const all = Array.isArray(data) ? data : data.features.map(f => f.properties);
+  rows = all.filter(r => r.code_departement === '22').map(r => {
+    const code = bad(r.code_commune) ? '' : String(r.code_commune);
+    const off = code && byCode[code];
+    let remarque = '';
+    if (!code) remarque = 'commune non renseignée (0NULL)';
+    else if (!off) remarque = code === '22200' ? '22200 = Pléven, commune déléguée de Val-d’Arguenon (22237) depuis le 01/01/2025' : 'code ' + code + ' non trouvé dans le référentiel';
+    else if (off.codeDepartement !== '22') remarque = 'code INSEE ' + code + ' = ' + off.nom + ' (' + off.codeDepartement + '), hors 22';
+    return {...r, code_insee: code, commune_off: off ? off.nom : (r.nom_commune || ''), dept_reel: off ? off.codeDepartement : '', remarque};
+  });
+  rows.sort((a, b) => b.annee - a.annee || b.montant_engage - a.montant_engage);
+  const total = rows.reduce((s, r) => s + r.montant_engage, 0);
+  const nGeo = rows.filter(r => r.code_insee).length;
+  const nCom = new Set(rows.filter(r => r.code_insee).map(r => r.code_insee)).size;
+  const nAnom = rows.filter(r => r.remarque).length;
+  document.getElementById('msg').textContent =
+    rows.length + ' projets (code_departement = 22) — ' + nGeo + ' avec code INSEE (' + nCom + ' communes distinctes), ' +
+    (rows.length - nGeo) + ' sans commune, ' + nAnom + ' remarque(s) — total ' + eur(total) + '.';
+  document.querySelector('#t tbody').innerHTML = rows.map(r =>
+    '<tr><td>' + r.annee + '</td><td><strong>' + esc(r.code_insee) + '</strong></td><td>' + esc(r.commune_off) + '</td><td>' + esc(r.epci) + '</td>' +
+    '<td>' + esc(r.demarche) + '</td><td>' + esc(r.nom_du_projet) + '</td><td>' + esc(r.beneficiaire) + '</td>' +
+    '<td style="text-align:right;white-space:nowrap">' + eur(r.montant_engage) + '</td><td>' + esc(r.numero_dossier_ds) + '</td>' +
+    '<td class="rem">' + esc(r.remarque) + '</td></tr>').join('');
+}).catch(e => { document.getElementById('msg').textContent = 'Erreur de chargement : ' + e; });
+
+document.getElementById('export').addEventListener('click', () => {
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""').replace(/\s*\n\s*/g, ' ') + '"';
+  const cols = ['annee','code_insee','commune_officielle','code_departement','dept_reel','epci','demarche','nom_du_projet','description_projet','beneficiaire','operateur','montant_engage','latitude','longitude','numero_dossier_ds','remarque'];
+  const head = cols.join(';');
+  const csv = [head, ...rows.map(r => cols.map(c => q(c === 'commune_officielle' ? r.commune_off : r[c])).join(';'))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([String.fromCharCode(0xFEFF) + csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'projets_cotes_darmor_code_insee.csv'; a.click();
+});
+</script>
+</body>
+</html>

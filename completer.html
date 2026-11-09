@@ -18,11 +18,11 @@ button{margin:.4rem .6rem .4rem 0;padding:.55rem 1rem;cursor:pointer;font:inheri
 </style>
 </head>
 <body>
-<h1>Compléter les lignes sans commune — Fonds vert Bretagne</h1>
-<p id="msg">Chargement de fonds_vert_bretagne.json…</p>
-<p>Cellules jaunes à remplir : <strong>code_commune</strong> (code Insee, ex. <code>22054</code>), <strong>nom_commune</strong>, <strong>epci</strong> (nom de l’EPCI), <strong>latitude</strong>, <strong>longitude</strong>. Laissez vide ce qui est inconnu. Ensuite, téléchargez le JSON corrigé et remplacez <code>fonds_vert_bretagne.json</code> à la racine du dépôt (le tableau de bord se mettra à jour automatiquement).</p>
+<h1>Compléter les lignes sans rattachement géographique — Fonds vert Bretagne</h1>
+<p id="msg">Chargement de fv_no_geo.json…</p>
+<p>Ce fichier contient les projets sans commune renseignée, archivés hors du tableau de bord. Cellules jaunes à remplir : <strong>code_commune</strong> (code Insee, ex. <code>22054</code>), <strong>nom_commune</strong>, <strong>epci</strong> (nom de l’EPCI), <strong>latitude</strong>, <strong>longitude</strong>. Laissez vide ce qui est inconnu. Ensuite, téléchargez le JSON corrigé (<code>fv_no_geo_corrige.json</code>) : les lignes complétées pourront être réintégrées à <code>fonds_vert_bretagne.json</code>.</p>
 <p>
-  <button id="dl-json">Télécharger fonds_vert_bretagne.json corrigé</button>
+  <button id="dl-json">Télécharger fv_no_geo.json corrigé</button>
   <button id="dl-csv">Télécharger uniquement les corrections (CSV)</button>
 </p>
 <div style="overflow:auto;max-height:70vh">
@@ -35,7 +35,7 @@ const bad = v => !v || /^(null|0null)$/i.test(String(v).trim());
 const FIELDS = ['code_commune', 'nom_commune', 'epci', 'latitude', 'longitude'];
 let raw = [], badRows = [];
 
-fetch('fonds_vert_bretagne.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+fetch('fv_no_geo.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
   raw = Array.isArray(d) ? d : (d.features || []).map(f => f.properties);
   badRows = raw.filter(r => bad(r.code_commune) || bad(r.nom_commune));
   document.getElementById('msg').textContent = badRows.length + ' lignes sans commune à compléter.';
@@ -50,7 +50,7 @@ fetch('fonds_vert_bretagne.json').then(r => { if (!r.ok) throw new Error(r.statu
     `<td class="ro" style="text-align:right">${esc(r.montant_engage)}</td>` +
     FIELDS.map(f => `<td class="edit"><input data-i="${i}" data-f="${f}" value="${esc(bad(r[f]) ? '' : r[f])}"></td>`).join('') +
     '</tr>').join('');
-}).catch(e => { document.getElementById('msg').textContent = 'Erreur de chargement de fonds_vert_bretagne.json : ' + e; });
+}).catch(e => { document.getElementById('msg').textContent = 'Erreur de chargement de fv_no_geo.json : ' + e; });
 
 const readEdits = () => {
   const m = {};
@@ -70,7 +70,7 @@ document.getElementById('dl-json').addEventListener('click', () => {
   });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(raw, null, 2)], {type: 'application/json;charset=utf-8'}));
-  a.download = 'fonds_vert_bretagne.json';
+  a.download = 'fv_no_geo_corrige.json';
   a.click();
 });
 

@@ -32,12 +32,12 @@
 
   const acc = theme.accent || 'ink';
   const section = (title, html) =>
-    html ? '<section class="section acc-' + acc + '"><h2><span class="hl">' + title + '</span></h2>' + html + '</section>' : '';
+    html ? '<section class="section"><h2><span class="hl">' + title + '</span></h2>' + html + '</section>' : '';
 
   let html = '';
   html += '<div class="detail-header">' +
     '<div class="badges">' +
-    '<span class="badge acc-' + acc + '">' + theme.emoji + ' ' + theme.label + '</span>' +
+    '<span class="theme-tag"><span class="dot ' + acc + '"></span>' + theme.label + '</span>' +
     (f.niveau ? '<span class="badge niveau-' + f.niveau + '">Niveau ' + f.niveau + ' · ' + f.niveauLabel + '</span>' : '') +
     '</div>' +
     '<h1><span class="hl">' + f.titre + '</span></h1>' +

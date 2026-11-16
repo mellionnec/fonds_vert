@@ -43,12 +43,12 @@
     const theme = THEMES[f.theme] || { label: f.theme, emoji: '', accent: 'ink' };
     const acc = theme.accent || 'ink';
     const a = document.createElement('a');
-    a.className = 'card acc-' + acc;
+    a.className = 'card';
     a.href = 'fiche.html?id=' + encodeURIComponent(f.id);
     const participants = f.participants ? f.participants + ' participant·e·s' : '—';
     a.innerHTML =
       '<div class="badges">' +
-      '<span class="badge acc-' + acc + '">' + theme.emoji + ' ' + theme.label + '</span>' +
+      '<span class="theme-tag"><span class="dot ' + acc + '"></span>' + theme.label + '</span>' +
       (f.niveau ? '<span class="badge niveau-' + f.niveau + '">Niveau ' + f.niveau + ' · ' + f.niveauLabel + '</span>' : '') +
       '</div>' +
       '<h2><span class="hl">' + f.titre + '</span></h2>' +

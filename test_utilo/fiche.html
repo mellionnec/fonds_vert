@@ -30,16 +30,17 @@
   const theme = THEMES[f.theme] || { label: f.theme, emoji: '', desc: '' };
   document.title = f.titre + ' · Utilo';
 
+  const acc = theme.accent || 'ink';
   const section = (title, html) =>
-    html ? '<section class="section"><h2>' + title + '</h2>' + html + '</section>' : '';
+    html ? '<section class="section acc-' + acc + '"><h2><span class="hl">' + title + '</span></h2>' + html + '</section>' : '';
 
   let html = '';
   html += '<div class="detail-header">' +
     '<div class="badges">' +
-    '<span class="badge">' + theme.emoji + ' ' + theme.label + '</span>' +
+    '<span class="badge acc-' + acc + '">' + theme.emoji + ' ' + theme.label + '</span>' +
     (f.niveau ? '<span class="badge niveau-' + f.niveau + '">Niveau ' + f.niveau + ' · ' + f.niveauLabel + '</span>' : '') +
     '</div>' +
-    '<h1>' + f.titre + '</h1>' +
+    '<h1><span class="hl">' + f.titre + '</span></h1>' +
     '<p class="meta">' +
     '<span class="meta-item">⏱ Durée : <b>' + (f.duree || '—') + '</b></span>' +
     '<span class="meta-item">🧰 Préparation : <b>' + (f.preparation || '—') + '</b></span>' +

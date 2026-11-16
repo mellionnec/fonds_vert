@@ -40,17 +40,18 @@
   }
 
   function card(f) {
-    const theme = THEMES[f.theme] || { label: f.theme, emoji: '' };
+    const theme = THEMES[f.theme] || { label: f.theme, emoji: '', accent: 'ink' };
+    const acc = theme.accent || 'ink';
     const a = document.createElement('a');
-    a.className = 'card';
+    a.className = 'card acc-' + acc;
     a.href = 'fiche.html?id=' + encodeURIComponent(f.id);
     const participants = f.participants ? f.participants + ' participant·e·s' : '—';
     a.innerHTML =
       '<div class="badges">' +
-      '<span class="badge">' + theme.emoji + ' ' + theme.label + '</span>' +
+      '<span class="badge acc-' + acc + '">' + theme.emoji + ' ' + theme.label + '</span>' +
       (f.niveau ? '<span class="badge niveau-' + f.niveau + '">Niveau ' + f.niveau + ' · ' + f.niveauLabel + '</span>' : '') +
       '</div>' +
-      '<h2>' + f.titre + '</h2>' +
+      '<h2><span class="hl">' + f.titre + '</span></h2>' +
       '<p class="meta">' +
       '<span>⏱ ' + (f.duree || '—') + '</span>' +
       '<span>🧰 ' + (f.preparation || '—') + '</span>' +

@@ -25,15 +25,17 @@
     return;
   }
   const theme = THEMES[f.theme] || { label: f.theme, emoji: '', desc: '' };
+  const tc = theme.color === '#ff4040' ? 'tc-red' : theme.color === '#ffc700' ? 'tc-yellow' : theme.color === '#4dff73' ? 'tc-green' : theme.color === '#4dffb8' ? 'tc-mint' : '';
+  const tcDark = theme.color || 'var(--accent)';
   document.title = f.titre + ' · Utilo';
 
   const section = (title, html) =>
     html ? '<section class="section"><h2>' + title + '</h2>' + html + '</section>' : '';
 
   let html = '';
-  html += '<div class="detail-header">' +
+  html += '<div class="detail-header' + (tc ? ' ' + tc : '') + '">' +
     '<div class="badges">' +
-    '<span class="badge">' + theme.emoji + ' ' + theme.label + '</span>' +
+    '<span class="badge ' + tc + '">' + theme.emoji + ' ' + theme.label + '</span>' +
     (f.niveau ? '<span class="badge niveau-' + f.niveau + '">Niveau ' + f.niveau + ' · ' + f.niveauLabel + '</span>' : '') +
     '</div>' +
     '<h1>' + f.titre + '</h1>' +

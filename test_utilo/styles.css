@@ -70,6 +70,9 @@ select, input[type="search"] {
 .reset:hover { background: #cceeea; }
 
 .count { color: var(--muted); font-size: .9rem; margin: 0 4px 12px; }
+.legend { color: var(--muted); font-size: .78rem; margin: 0 4px 14px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
 /* Cards */
 .grid {
@@ -108,11 +111,29 @@ select, input[type="search"] {
 .card .meta span::before { content: "· "; color: var(--border); }
 .card .meta span:first-child::before { content: ""; }
 .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
-.chip { font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: #f1efe8; color: #55504a; }
+.chip { font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.06); color: #55504a; }
 .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+
+/* Code couleur Utilo par thématique (palette officielle du guide Ti Lab) */
+.card { border-top: 4px solid transparent; }
+.card.tc-red    { background: #fff3f3; border-top-color: #ff4040; }
+.card.tc-yellow { background: #fffaea; border-top-color: #ffc700; }
+.card.tc-green  { background: #f0fff4; border-top-color: #4dff73; }
+.card.tc-mint   { background: #effffb; border-top-color: #4dffb8; }
+.card:hover { box-shadow: 0 12px 26px rgba(15, 23, 42, .14); }
+.badge.tc-red    { background: #ffe3e3; color: #c81e1e; }
+.badge.tc-yellow { background: #fff3c4; color: #8a6d00; }
+.badge.tc-green  { background: #dcf7e6; color: #187a3c; }
+.badge.tc-mint   { background: #d9fbf2; color: #0b7a6a; }
+.card .meta { color: #5b5b5b; }
 
 /* Fiche detail */
 .detail-header { padding: 36px 0 8px; }
+.detail-header.tc-red, .detail-header.tc-yellow, .detail-header.tc-green, .detail-header.tc-mint { border-top: 5px solid; padding-top: 24px; border-radius: 4px; }
+.detail-header.tc-red { border-top-color: #ff4040; }
+.detail-header.tc-yellow { border-top-color: #ffc700; }
+.detail-header.tc-green { border-top-color: #4dff73; }
+.detail-header.tc-mint { border-top-color: #4dffb8; }
 .backlink { display: inline-block; margin-bottom: 14px; text-decoration: none; font-weight: 600; }
 .backlink:hover { text-decoration: underline; }
 .detail-header h1 { margin: 0 0 10px; font-size: 1.9rem; }

@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fiche · Utilo</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ABeeZee&family=Hind+Siliguri:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -25,17 +28,15 @@
     return;
   }
   const theme = THEMES[f.theme] || { label: f.theme, emoji: '', desc: '' };
-  const tc = theme.color === '#ff4040' ? 'tc-red' : theme.color === '#ffc700' ? 'tc-yellow' : theme.color === '#4dff73' ? 'tc-green' : theme.color === '#4dffb8' ? 'tc-mint' : '';
-  const tcDark = theme.color || 'var(--accent)';
   document.title = f.titre + ' · Utilo';
 
   const section = (title, html) =>
     html ? '<section class="section"><h2>' + title + '</h2>' + html + '</section>' : '';
 
   let html = '';
-  html += '<div class="detail-header' + (tc ? ' ' + tc : '') + '">' +
+  html += '<div class="detail-header">' +
     '<div class="badges">' +
-    '<span class="badge ' + tc + '">' + theme.emoji + ' ' + theme.label + '</span>' +
+    '<span class="badge">' + theme.emoji + ' ' + theme.label + '</span>' +
     (f.niveau ? '<span class="badge niveau-' + f.niveau + '">Niveau ' + f.niveau + ' · ' + f.niveauLabel + '</span>' : '') +
     '</div>' +
     '<h1>' + f.titre + '</h1>' +

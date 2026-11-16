@@ -39,25 +39,15 @@
     return true;
   }
 
-  function tcClass(color) {
-    if (!color) return '';
-    if (color === '#ff4040') return 'tc-red';
-    if (color === '#ffc700') return 'tc-yellow';
-    if (color === '#4dff73') return 'tc-green';
-    if (color === '#4dffb8') return 'tc-mint';
-    return '';
-  }
-
   function card(f) {
     const theme = THEMES[f.theme] || { label: f.theme, emoji: '' };
-    const tc = tcClass(theme.color);
     const a = document.createElement('a');
-    a.className = 'card ' + tc;
+    a.className = 'card';
     a.href = 'fiche.html?id=' + encodeURIComponent(f.id);
     const participants = f.participants ? f.participants + ' participant·e·s' : '—';
     a.innerHTML =
       '<div class="badges">' +
-      '<span class="badge ' + tc + '">' + theme.emoji + ' ' + theme.label + '</span>' +
+      '<span class="badge">' + theme.emoji + ' ' + theme.label + '</span>' +
       (f.niveau ? '<span class="badge niveau-' + f.niveau + '">Niveau ' + f.niveau + ' · ' + f.niveauLabel + '</span>' : '') +
       '</div>' +
       '<h2>' + f.titre + '</h2>' +

@@ -194,6 +194,7 @@ label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rec
 }
 
 /* Assistant Utilo */
+.as-panel[hidden] { display: none; }
 .as-launcher {
   position: fixed;
   right: 22px; bottom: 22px;
@@ -209,7 +210,7 @@ label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rec
   z-index: 50;
 }
 .as-launcher:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 30px rgba(0,0,0,.22); }
-.as-launcher.active { opacity: 0; pointer-events: none; }
+
 .as-panel {
   position: fixed;
   right: 22px; bottom: 22px;

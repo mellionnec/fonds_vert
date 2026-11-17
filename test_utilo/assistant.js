@@ -161,9 +161,19 @@
   function toggle(v) {
     open = (v === undefined) ? !open : v;
     panel.hidden = !open;
-    launcher.classList.toggle('active', open);
-    if (open) panel.querySelector('input').focus();
+    launcher.textContent = open ? '×' : '✨';
+    launcher.setAttribute('aria-label', open ? 'Fermer l\'assistant Utilo' : 'Ouvrir l\'assistant Utilo');
+    if (open) {
+      var inp = panel.querySelector('input');
+      if (inp) inp.focus();
+    }
   }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && open) toggle(false);
+  });
+  document.addEventListener('click', function (e) {
+    if (open && !panel.contains(e.target) && !launcher.contains(e.target)) toggle(false);
+  });
   launcher.addEventListener('click', function () { toggle(); });
   panel.querySelector('.as-close').addEventListener('click', function () { toggle(false); });
 

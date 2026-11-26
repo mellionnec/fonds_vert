@@ -119,7 +119,7 @@
       </div></div></div></div>
 
       <div class="fr-callout fr-callout--sm">
-        <p class="fr-callout__text fr-text--sm">Ratio = montant engagé ÷ population totale du territoire (population Insee, via geo.api.gouv.fr). Pour un EPCI ou un département, c’est la population entière du territoire, pas seulement celle des communes aidées.</p>
+        <p class="fr-callout__text fr-text--sm">Ratio = montant engagé ÷ population totale du territoire (population Insee, via geo.api.gouv.fr). Pour un EPCI ou un département, c’est la population entière du territoire, pas seulement celle des communes aidées. Si un département est sélectionné, la population de référence d’un EPCI est limitée à ses communes situées dans ce département (utile pour les EPCI interdépartementaux, comme la CC Poher Communauté).</p>
       </div>
     </div>
 
@@ -202,7 +202,7 @@ const nb = v => v == null ? 'n.d.' : v.toLocaleString('fr-FR');
 const cap = s => String(s || '').toLowerCase().replace(/(^|[\s'’-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
 const badCom = v => !v || /^null$/i.test(String(v).trim());
 
-let data = [], filtered = [], years = [], pop = {com:{}, epci:{}, dep:{}, reg:0, ok:false}, depCode = {};
+let data = [], filtered = [], years = [], pop = {com:{}, epci:{}, dep:{}, epciDep:{}, reg:0, ok:false}, depCode = {};
 const st = {terr:{k:'montant', d:-1}, prj:{k:'montant', d:-1}, limit:100};
 let map, layer, chlLayer, mapDirty = true, charts = {}, epciGeo = null, chlScale = [];
 const CHL_COLORS = ['#e7f6ec', '#a7e3bd', '#4fc38a', '#1e8f5f', '#0b5c3f'];
@@ -233,6 +233,7 @@ async function load() {
   com.forEach(c => {
     pop.com[c.code] = c;
     pop.dep[c.codeDepartement] = (pop.dep[c.codeDepartement] || 0) + (c.population || 0);
+    if (c.codeEpci) { const k = c.codeEpci + '|' + c.codeDepartement; pop.epciDep[k] = (pop.epciDep[k] || 0) + (c.population || 0); }
     pop.reg += c.population || 0;
   });
   epc.forEach(e => pop.epci[e.code] = e);
@@ -272,6 +273,16 @@ function render() {
 }
 
 const periPop = () => { const d = $('#f-dep').value; return pop.ok ? (d === 'ALL' ? pop.reg : pop.dep[depCode[d]]) : null; };
+// Population de reference d'un EPCI : si un departement est filtre, on ne compte que les communes
+// membres situees dans ce departement (utile pour les EPCI interdepartementaux, ex. CC Poher Communaute).
+const epciPopFor = r => {
+  const d = $('#f-dep').value;
+  if (d !== 'ALL' && r.epciKey && !String(r.epciKey).startsWith('n:') && r.depCode) {
+    const v = pop.epciDep[r.epciKey + '|' + r.depCode];
+    if (v) return v;
+  }
+  return r.epciPop;
+};
 
 function kpis() {
   const total = filtered.reduce((a, r) => a + r.montant, 0), pp = periPop();
@@ -338,7 +349,7 @@ function drawTerr() {
     let o = m.get(k);
     if (!o) {
       o = vue === 'dep' ? {nom:r.dep, pop:pop.ok ? pop.dep[r.depCode] : null}
-        : vue === 'epci' ? {nom:r.epciNom, pop:r.epciPop}
+        : vue === 'epci' ? {nom:r.epciNom, pop:epciPopFor(r)}
         : {nom:r.depCode ? `${r.commune} (${r.depCode})` : r.commune, pop:r.comPop};
       o.n = 0; o.montant = 0; m.set(k, o);
     }
@@ -405,7 +416,7 @@ async function drawChloro(mode) {
   const byEpci = new Map();
   filtered.forEach(r => {
     if (!r.epciKey || r.epciKey.startsWith('n:')) return;
-    let o = byEpci.get(r.epciKey); if (!o) { o = {montant:0, n:0, pop:r.epciPop}; byEpci.set(r.epciKey, o); }
+    let o = byEpci.get(r.epciKey); if (!o) { o = {montant:0, n:0, pop:epciPopFor(r)}; byEpci.set(r.epciKey, o); }
     o.montant += r.montant; o.n++;
   });
   const val = o => mode === 'epci-ratio' ? (o.pop > 0 ? o.montant / o.pop : null) : o.montant;

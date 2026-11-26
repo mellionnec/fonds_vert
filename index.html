@@ -50,7 +50,7 @@
     <p>Les populations n’ont pas pu être chargées depuis geo.api.gouv.fr : les ratios par habitant sont indisponibles. Rechargez la page ou vérifiez votre connexion.</p>
   </div>
   <div class="fr-alert fr-alert--error fr-alert--sm fr-mb-3w" id="alert-data" hidden>
-    <p>Le fichier fonds_vert_bretagne.json est introuvable. Placez-le dans le même dossier que cette page (et ouvrez la page via GitHub Pages ou un serveur local, pas en file://).</p>
+    <p>Un fichier de données (fonds_vert_bretagne.json et ses suites) est introuvable. Placez-le dans le même dossier que cette page (et ouvrez la page via GitHub Pages ou un serveur local, pas en file://).</p>
   </div>
   <div class="fr-alert fr-alert--info fr-alert--sm fr-mb-3w" id="alert-nogeo" hidden>
     <p id="alert-nogeo-txt"></p>
@@ -171,7 +171,7 @@
 <script nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.12.1/dist/dsfr.nomodule.min.js"></script>
 
 <script>
-const JSON_URL = 'fonds_vert_bretagne.json';
+const JSON_URLS = ['fonds_vert_bretagne.json', 'fonds_vert_bretagne_2.json', 'fonds_vert_bretagne_3.json'];
 const EPCI_GEO_URL = 'epci_simple.geojson';
 const GEO = 'https://geo.api.gouv.fr';
 const MONTANT_BINS = [[0, 50000, '< 50 k€'], [50000, 200000, '50–200 k€'], [200000, 500000, '200–500 k€'], [500000, Infinity, '≥ 500 k€']];
@@ -213,7 +213,7 @@ const median = arr => { if (!arr.length) return null; const a = [...arr].sort((x
 async function load() {
   initMap();
   let raw;
-  try { raw = await getJson(JSON_URL); } catch (e) {
+  try { raw = (await Promise.all(JSON_URLS.map(getJson))).flat(); } catch (e) {
     $('#alert-data').hidden = false;
     $('#map-miss').textContent = 'Carte indisponible : le fichier de données n’a pas pu être chargé.';
     return;

@@ -162,7 +162,7 @@
 </main>
 
 <footer class="fr-footer" role="contentinfo"><div class="fr-container"><div class="fr-footer__bottom">
-  <p class="fr-footer__bottom-copy">Données : fonds_vert_bretagne.json (Fonds vert, région Bretagne). Populations : population Insee via geo.api.gouv.fr. Projets sans rattachement géographique : fv_no_geo.json. Photos des communes : Wikipédia / Wikimedia Commons. Fond de carte © contributeurs OpenStreetMap.</p>
+  <p class="fr-footer__bottom-copy">Données : fonds_vert_bretagne.json (Fonds vert, région Bretagne). Populations : population Insee via geo.api.gouv.fr. Rattachement des 56 projets sans commune dans la source : siège du bénéficiaire via l'API Recherche d'entreprises (SIREN) ; fv_no_geo.json conserve l'archive initiale. Photos des communes : Wikipédia / Wikimedia Commons. Fond de carte © contributeurs OpenStreetMap.</p>
 </div></div></footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -480,7 +480,7 @@ $('#export').addEventListener('click', () => {
 });
 
 // ----- Fiche projet -----
-const LABELS = {numero_dossier_ds:'N° dossier DS', annee:'Année', nom_region:'Région', code_departement:'Code département', nom_departement:'Département', code_commune:'Code commune', nom_commune:'Commune', epci:'EPCI', demarche:'Démarche', nom_du_projet:'Projet', description_projet:'Description', beneficiaire:'Bénéficiaire', operateur:'Opérateur', montant_engage:'Montant engagé', latitude:'Latitude', longitude:'Longitude'};
+const LABELS = {numero_dossier_ds:'N° dossier DS', annee:'Année', nom_region:'Région', code_departement:'Code département', nom_departement:'Département', code_commune:'Code commune', nom_commune:'Commune', epci:'EPCI', demarche:'Démarche', nom_du_projet:'Projet', description_projet:'Description', beneficiaire:'Bénéficiaire', operateur:'Opérateur', montant_engage:'Montant engagé', latitude:'Latitude', longitude:'Longitude', rattachement:'Rattachement'};
 async function communePhoto(nom) {
   if (!nom || /renseign/i.test(nom)) return null;
   try {
@@ -501,7 +501,8 @@ function ficheHtml(r) {
   const raw = r.raw || {};
   const rowsHtml = Object.entries(raw).filter(([, v]) => v !== null && v !== undefined && String(v) !== '')
     .map(([k, v]) => `<tr><th scope="row" class="fr-text--sm">${esc(LABELS[k] || k)}</th><td>${k === 'montant_engage' ? eur(Number(v) || 0) : esc(v)}</td></tr>`).join('');
-  return `<p class="fr-text--sm fr-mb-2w">Commune : <strong>${esc(r.commune)}</strong> · EPCI : ${esc(r.epciNom)} · ${esc(r.theme)} · ${esc(r.annee)} · <strong>${eur(r.montant)}</strong></p>
+  const approx = r.raw && r.raw.rattachement ? `<div class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w"><p>Localisation approximative : ${esc(r.raw.rattachement)}.</p></div>` : '';
+  return `${approx}<p class="fr-text--sm fr-mb-2w">Commune : <strong>${esc(r.commune)}</strong> · EPCI : ${esc(r.epciNom)} · ${esc(r.theme)} · ${esc(r.annee)} · <strong>${eur(r.montant)}</strong></p>
     <img class="fiche-photo" alt="Photo de ${esc(r.commune)}" hidden>
     <p class="fr-text--xs fr-mt-1w fr-mb-2w">Photo : Wikipédia / Wikimedia Commons (licence libre), si disponible pour cette commune.</p>
     <div class="fr-table fr-table--sm"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content"><table><tbody>${rowsHtml}</tbody></table></div></div></div></div>`;
